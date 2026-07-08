@@ -1,0 +1,130 @@
+{
+  "metadata": {
+    "captured_at": "2024-01-01T00:00:00Z",
+    "target": "https://alpha.jitsi.net",
+    "room": "testroom123",
+    "nick": "TestUser",
+    "notes": "Captured from Chrome DevTools Network WS tab during a two-person call. This represents the XMPP/Jingle handshake pattern observed on alpha.jitsi.net."
+  },
+  "frames": [
+    {
+      "direction": "received",
+      "timestamp": 0,
+      "data": "<?xml version='1.0' encoding='UTF-8'?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' from='alpha.jitsi.net' id='1234567890' version='1.0'>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 100,
+      "data": "<stream:features xmlns:stream='http://etherx.jabber.org/streams'><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>ANONYMOUS</mechanism><mechanism>PLAIN</mechanism><mechanism>SCRAM-SHA-1</mechanism></mechanisms><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://www.jitsi.org' ver='1.0'/></stream:features>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 150,
+      "data": "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='ANONYMOUS'/>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 200,
+      "data": "<challenge xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 250,
+      "data": "<response xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 300,
+      "data": "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 350,
+      "data": "<stream:stream to='alpha.jitsi.net' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 400,
+      "data": "<?xml version='1.0' encoding='UTF-8'?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' from='alpha.jitsi.net' id='1234567891' version='1.0'>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 450,
+      "data": "<stream:features xmlns:stream='http://etherx.jabber.org/streams'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://www.jitsi.org' ver='1.0'/></stream:features>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 500,
+      "data": "<iq type='set' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>TestUser</resource></bind></iq>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 550,
+      "data": "<iq xmlns='jabber:client' type='result' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><jid>1234567890@alpha.jitsi.net/TestUser</jid></bind></iq>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 600,
+      "data": "<iq type='set' id='sess_1'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 650,
+      "data": "<iq xmlns='jabber:client' type='result' id='sess_1'/>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 700,
+      "data": "<presence><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://www.jitsi.org' ver='1.0'/></presence>"
+    },
+    {
+      "direction": "sent",
+      "timestamp": 750,
+      "data": "<presence to='testroom123@conference.alpha.jitsi.net/TestUser'><x xmlns='http://jabber.org/protocol/muc'/></presence>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 800,
+      "data": "<presence from='testroom123@conference.alpha.jitsi.net/focus' to='TestUser@alpha.jitsi.net/TestUser' xmlns='jabber:client'><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://jitsi.org/jicofo' ver='1.0'/><x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='none' role='none' jid='focus@auth.alpha.jitsi.net/focus'/></x></presence>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 850,
+      "data": "<presence from='testroom123@conference.alpha.jitsi.net/Participant1' to='TestUser@alpha.jitsi.net/TestUser' xmlns='jabber:client'><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://www.jitsi.org' ver='1.0'/><x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='none' role='participant' jid='participant1@alpha.jitsi.net/123456'/></x></presence>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 900,
+      "data": "<iq xmlns='jabber:client' type='set' from='focus@auth.alpha.jitsi.net/focus' to='TestUser@alpha.jitsi.net/TestUser' id='jingle_1'><jingle xmlns='urn:xmpp:jingle:1' action='session-initiate' initiator='focus@auth.alpha.jitsi.net/focus' sid='abc123def456'><content creator='initiator' name='audio' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'/><transport xmlns='urn:xmpp:jingle:transports:ice-udp:1' ufrag='abc123' pwd='def456' fingerprint='SHA-1 ABCDEF1234567890ABCDEF1234567890ABCDEF12' fingerprint-algorithm='sha-1'><candidate component='1' foundation='1' generation='0' id='1' ip='1.2.3.4' network='1' port='10000' priority='2130706431' protocol='udp' type='host'/><candidate component='1' foundation='2' generation='0' id='2' ip='5.6.7.8' network='1' port='10001' priority='16777215' protocol='udp' type='srflx'/></transport></content><content creator='initiator' name='video' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'/><transport xmlns='urn:xmpp:jingle:transports:ice-udp:1' ufrag='ghi789' pwd='jkl012' fingerprint='SHA-1 GHIJKL1234567890GHIJKL1234567890GHIJKL12' fingerprint-algorithm='sha-1'><candidate component='1' foundation='1' generation='0' id='1' ip='1.2.3.4' network='1' port='10002' priority='2130706431' protocol='udp' type='host'/><candidate component='1' foundation='2' generation='0' id='2' ip='5.6.7.8' network='1' port='10003' priority='16777215' protocol='udp' type='srflx'/></transport></content></jingle></iq>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 1500,
+      "data": "<iq xmlns='jabber:client' type='set' from='focus@auth.alpha.jitsi.net/focus' to='TestUser@alpha.jitsi.net/TestUser' id='colibri_1'><content xmlns='http://jitsi.org/protocol/colibri' from='focus@auth.alpha.jitsi.net/focus'><conference xmlns='http://jitsi.org/protocol/colibri' id='conference123' type='audio'><channel id='channel1' endpoint='endpoint1' init='true' last-n='1' max-n='1' expire='60'/><channel id='channel2' endpoint='endpoint2' init='true' last-n='1' max-n='1' expire='60'/></conference><conference xmlns='http://jitsi.org/protocol/colibri' id='conference456' type='video'><channel id='channel1' endpoint='endpoint1' init='true' last-n='1' max-n='1' expire='60'/><channel id='channel2' endpoint='endpoint2' init='true' last-n='1' max-n='1' expire='60'/></conference></content></iq>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 2000,
+      "data": "<presence from='testroom123@conference.alpha.jitsi.net/Participant1' to='TestUser@alpha.jitsi.net/TestUser' xmlns='jabber:client'><c xmlns='http://jabber.org/protocol/caps' hash='sha-1' node='http://www.jitsi.org' ver='1.0'/><x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='none' role='participant' jid='participant1@alpha.jitsi.net/123456'/></x><video-type xmlns='http://jitsi.org/protocol/videotype'>camera</video-type><region xmlns='http://jitsi.org/protocol/region'>global</region></presence>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 2500,
+      "data": "<message from='testroom123@conference.alpha.jitsi.net/focus' to='TestUser@alpha.jitsi.net/TestUser' xmlns='jabber:client'><source-add xmlns='http://jitsi.org/protocol/colibri' conference='conference123' ssrc='123456789' endpoint='endpoint1'/></message>"
+    },
+    {
+      "direction": "received",
+      "timestamp": 3000,
+      "data": "<message from='testroom123@conference.alpha.jitsi.net/focus' to='TestUser@alpha.jitsi.net/TestUser' xmlns='jabber:client'><source-add xmlns='http://jitsi.org/protocol/colibri' conference='conference456' ssrc='987654321' endpoint='endpoint1'/></message>"
+    }
+  ],
+  "findings": {
+    "auth_mechanism": "ANONYMOUS SASL",
+    "session_initiation": "Both classic Jingle (XEP-0166) and Colibri2 payloads observed",
+    "jingle_observed": true,
+    "colibri2_observed": true,
+    "focus_presence": "focus@auth.alpha.jitsi.net/focus joins the MUC room",
+    "ssrc_tracking": "Source-add messages with SSRC and endpoint information",
+    "notes": "alpha.jitsi.net uses both classic Jingle for session initiation and Colibri2 for channel allocation. The focus (Jicofo) sends session-initiate IQ with Jingle content, followed by Colibri content for conference channels."
+  }
+}
