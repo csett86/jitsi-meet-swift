@@ -15,6 +15,36 @@ public enum XMPPConnectionState: Equatable {
     case connected
     case authenticated
     case failed(Error)
+    case reconnecting(timeout: TimeInterval, attempt: Int)
+}
+
+/// Configuration for XMPP WebSocket connection
+public struct XMPPWebSocketConfiguration {
+    public let websocketURL: URL
+    public let reconnectEnabled: Bool
+    public let maxReconnectAttempts: Int
+    public let reconnectBaseTimeout: TimeInterval
+    public let reconnectMaxTimeout: TimeInterval
+    public let pingInterval: TimeInterval
+    public let timeoutInterval: TimeInterval
+    
+    public init(
+        websocketURL: URL,
+        reconnectEnabled: Bool = true,
+        maxReconnectAttempts: Int = 5,
+        reconnectBaseTimeout: TimeInterval = 1.0,
+        reconnectMaxTimeout: TimeInterval = 30.0,
+        pingInterval: TimeInterval = 30.0,
+        timeoutInterval: TimeInterval = 30.0
+    ) {
+        self.websocketURL = websocketURL
+        self.reconnectEnabled = reconnectEnabled
+        self.maxReconnectAttempts = maxReconnectAttempts
+        self.reconnectBaseTimeout = reconnectBaseTimeout
+        self.reconnectMaxTimeout = reconnectMaxTimeout
+        self.pingInterval = pingInterval
+        self.timeoutInterval = timeoutInterval
+    }
 }
 
 /// Low-level WebSocket connection for XMPP
@@ -24,22 +54,40 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
     
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
-    private let url: URL
+    private let config: XMPPWebSocketConfiguration
     private let parser = XMPPStanzaParser()
+    
+    private var reconnectAttempt: Int = 0
+    private var reconnectTimer: Timer?
+    private var pingTimer: Timer?
+    private var lastPingTime: Date?
+    private var lastPongTime: Date?
     
     @Published public private(set) var state: XMPPConnectionState = .disconnected
     
     public var onStanza: ((XMPPStanza) -> Void)?
     public var onStreamOpen: (() -> Void)?
     public var onStreamClose: (() -> Void)?
+    public var onConnectionError: ((Error) -> Void)?
     
     // MARK: - Initialization
     
-    public init(websocketURL: URL) {
-        self.url = websocketURL
+    public init(config: XMPPWebSocketConfiguration) {
+        self.config = config
         super.init()
         
         setupParser()
+    }
+    
+    public convenience init(websocketURL: URL) {
+        let config = XMPPWebSocketConfiguration(websocketURL: websocketURL)
+        self.init(config: config)
+    }
+    
+    deinit {
+        disconnect()
+        reconnectTimer?.invalidate()
+        pingTimer?.invalidate()
     }
     
     // MARK: - Setup
@@ -50,44 +98,141 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
         }
         
         parser.onStreamOpen = { [weak self] in
-            self?.state = .connected
-            self?.onStreamOpen?()
+            self?.handleStreamOpen()
         }
         
         parser.onStreamClose = { [weak self] in
-            self?.state = .disconnected
-            self?.onStreamClose?()
+            self?.handleStreamClose()
         }
     }
     
     // MARK: - Connection Management
     
     public func connect() {
-        guard state == .disconnected || state == .failed(_) else {
+        guard state == .disconnected || state == .failed(_) || state == .left else {
             return
         }
         
         state = .connecting
+        reconnectAttempt = 0
         
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 30
+        createConnection()
+    }
+    
+    public func disconnect() {
+        cancelReconnectTimer()
+        cancelPingTimer()
+        
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        urlSession?.invalidateAndCancel()
+        urlSession = nil
+        
+        if case .reconnecting = state {
+            // Don't transition to disconnected if we're intentionally disconnecting
+        } else {
+            state = .disconnected
+        }
+    }
+    
+    private func createConnection() {
+        var request = URLRequest(url: config.websocketURL)
+        request.timeoutInterval = config.timeoutInterval
         
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.waitsForConnectivity = true
+        sessionConfig.timeoutIntervalForRequest = config.timeoutInterval
+        sessionConfig.timeoutIntervalForResource = config.timeoutInterval
+        
         urlSession = URLSession(configuration: sessionConfig, delegate: nil, delegateQueue: nil)
         
         webSocketTask = urlSession?.webSocketTask(with: request)
         webSocketTask?.resume()
         
         startListening()
+        startPingTimer()
     }
     
-    public func disconnect() {
+    // MARK: - Reconnection
+    
+    private func scheduleReconnect() {
+        guard config.reconnectEnabled && reconnectAttempt < config.maxReconnectAttempts else {
+            state = .failed(NSError(domain: "XMPP", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Max reconnection attempts reached"
+            ]))
+            return
+        }
+        
+        reconnectAttempt += 1
+        
+        // Calculate exponential backoff
+        let timeout = min(
+            config.reconnectBaseTimeout * pow(2.0, Double(reconnectAttempt - 1)),
+            config.reconnectMaxTimeout
+        )
+        
+        state = .reconnecting(timeout: timeout, attempt: reconnectAttempt)
+        
+        // Schedule reconnect
+        reconnectTimer?.invalidate()
+        reconnectTimer = Timer.scheduledTimer(
+            withTimeInterval: timeout,
+            repeats: false
+        ) { [weak self] _ in
+            self?.reconnect()
+        }
+    }
+    
+    private func reconnect() {
+        cancelReconnectTimer()
+        
+        // Clean up old connection
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         urlSession?.invalidateAndCancel()
         urlSession = nil
-        state = .disconnected
+        
+        // Reconnect
+        state = .connecting
+        createConnection()
+    }
+    
+    private func cancelReconnectTimer() {
+        reconnectTimer?.invalidate()
+        reconnectTimer = nil
+    }
+    
+    // MARK: - Ping/Pong
+    
+    private func startPingTimer() {
+        cancelPingTimer()
+        
+        pingTimer = Timer.scheduledTimer(
+            withTimeInterval: config.pingInterval,
+            repeats: true
+        ) { [weak self] _ in
+            self?.sendPing()
+        }
+    }
+    
+    private func sendPing() {
+        guard state == .connected || state == .authenticated else {
+            return
+        }
+        
+        lastPingTime = Date()
+        
+        // Send whitespace ping (XMPP keepalive)
+        send(" ")
+    }
+    
+    private func handlePong() {
+        lastPongTime = Date()
+    }
+    
+    private func cancelPingTimer() {
+        pingTimer?.invalidate()
+        pingTimer = nil
     }
     
     // MARK: - Message Sending
@@ -100,6 +245,7 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
         webSocketTask?.send(.string(text)) { [weak self] error in
             if let error = error {
                 print("WebSocket send error: \(error)")
+                self?.onConnectionError?(error)
             }
         }
     }
@@ -112,6 +258,7 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
         webSocketTask?.send(.data(data)) { [weak self] error in
             if let error = error {
                 print("WebSocket send error: \(error)")
+                self?.onConnectionError?(error)
             }
         }
     }
@@ -127,7 +274,7 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
                 self.handleMessage(message)
                 self.startListening()
             case .failure(let error):
-                self.state = .failed(error)
+                self.handleReceiveError(error)
             }
         }
     }
@@ -135,6 +282,12 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         switch message {
         case .string(let text):
+            // Check for pong (whitespace response)
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                handlePong()
+                return
+            }
+            
             if let data = text.data(using: .utf8) {
                 parser.parse(data: data)
             }
@@ -145,10 +298,43 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
         }
     }
     
+    private func handleReceiveError(_ error: Error) {
+        onConnectionError?(error)
+        
+        // Check if we should reconnect
+        if case .connected = state || case .authenticated = state {
+            scheduleReconnect()
+        } else {
+            state = .failed(error)
+        }
+    }
+    
     // MARK: - Stanza Handling
     
     private func handleStanza(_ stanza: XMPPStanza) {
         onStanza?(stanza)
+    }
+    
+    private func handleStreamOpen() {
+        // Reset reconnect attempt on successful connection
+        reconnectAttempt = 0
+        
+        state = .connected
+        onStreamOpen?()
+    }
+    
+    private func handleStreamClose() {
+        cancelPingTimer()
+        
+        // Check if this is an intentional disconnect
+        if case .disconnected = state {
+            return
+        }
+        
+        onStreamClose?()
+        
+        // Attempt to reconnect
+        scheduleReconnect()
     }
     
     // MARK: - Stream Management
@@ -156,12 +342,18 @@ public class XMPPWebSocketConnection: NSObject, ObservableObject {
     public func restartStream() {
         // Send stream restart after SASL authentication
         let streamOpen = """
-        <stream:stream to='\(url.host ?? "")' 
+        <stream:stream to='\(config.websocketURL.host ?? "")' 
                        xmlns='jabber:client' 
                        xmlns:stream='http://etherx.jabber.org/streams' 
                        version='1.0'>
         """
         send(streamOpen)
+    }
+    
+    // MARK: - State Management
+    
+    public func setAuthenticated() {
+        state = .authenticated
     }
 }
 
