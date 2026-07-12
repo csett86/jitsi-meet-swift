@@ -1,0 +1,26 @@
+{
+  "": {
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/primary.swiftdeps"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/Sources/SignalingSpike/StanzaBuilder.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/StanzaBuilder.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/StanzaBuilder.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/StanzaBuilder~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/StanzaBuilder.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/StanzaBuilder.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/Sources/SignalingSpike/XMPPClient.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/XMPPClient.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/XMPPClient.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/XMPPClient~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/XMPPClient.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/XMPPClient.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/Sources/SignalingSpike/main.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/main.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/main.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/main~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/main.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Tools/SignalingSpike/.build/x86_64-unknown-linux-gnu/debug/SignalingSpike.build/main.dia"
+  }
+}
