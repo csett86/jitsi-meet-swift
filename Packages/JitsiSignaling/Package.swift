@@ -8,12 +8,13 @@ let package = Package(
         .library(name: "JitsiSignaling", targets: ["JitsiSignaling"]),
     ],
     targets: [
-        // Phase 0 placeholder — will grow to cover: XMPP transport, stanza parsing,
-        // MUC, Jingle negotiation, and service discovery (disco).
         .target(name: "JitsiSignaling"),
         .testTarget(
             name: "JitsiSignalingTests",
-            dependencies: ["JitsiSignaling"]
+            dependencies: ["JitsiSignaling"],
+            resources: [
+                .copy("Fixtures"),
+            ]
         ),
     ],
     swiftLanguageModes: [.v6]
