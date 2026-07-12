@@ -1,0 +1,47 @@
+{
+  "": {
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/primary.swiftdeps"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/ColibriParserTests.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/ColibriParserTests.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/ColibriParserTests.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/ColibriParserTests~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/ColibriParserTests.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/ColibriParserTests.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/DiscoInfoParserTests.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/DiscoInfoParserTests.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/DiscoInfoParserTests.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/DiscoInfoParserTests~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/DiscoInfoParserTests.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/DiscoInfoParserTests.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/FixtureLoader.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/FixtureLoader.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/FixtureLoader.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/FixtureLoader~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/FixtureLoader.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/FixtureLoader.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/JingleParserTests.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JingleParserTests.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JingleParserTests.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JingleParserTests~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JingleParserTests.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JingleParserTests.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/JitsiSignalingTests.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JitsiSignalingTests.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JitsiSignalingTests.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JitsiSignalingTests~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JitsiSignalingTests.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/JitsiSignalingTests.dia"
+  },
+  "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Tests/JitsiSignalingTests/StanzaParserTests.swift": {
+    "dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/StanzaParserTests.d",
+    "object": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/StanzaParserTests.swift.o",
+    "swiftmodule": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/StanzaParserTests~partial.swiftmodule",
+    "swift-dependencies": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/StanzaParserTests.swiftdeps",
+    "diagnostics": "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingTests.build/StanzaParserTests.dia"
+  }
+}

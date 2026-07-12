@@ -1,0 +1,3 @@
+module JitsiSignalingPackageDiscoveredTests {
+    header "/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/.build/x86_64-unknown-linux-gnu/debug/JitsiSignalingPackageDiscoveredTests.build/include/JitsiSignalingPackageDiscoveredTests-Swift.h"
+}

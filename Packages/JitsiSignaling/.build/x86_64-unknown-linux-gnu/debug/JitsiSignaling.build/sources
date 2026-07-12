@@ -1,0 +1,12 @@
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/BackendConfig.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Conference/ConferenceState.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Conference/JitsiConference.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/MUC/MUCSession.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/MUC/ParticipantPresence.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Stanzas/ColibriContent.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Stanzas/DiscoInfo.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Stanzas/JingleContent.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Stanzas/Stanza.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/TURNDiscovery.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Transport/SASLAuthenticator.swift
+/home/runner/work/jitsi-meet-swift/jitsi-meet-swift/Packages/JitsiSignaling/Sources/JitsiSignaling/Transport/XMPPWebSocketConnection.swift
