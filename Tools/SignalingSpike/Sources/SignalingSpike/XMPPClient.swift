@@ -101,13 +101,9 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
         webSocketTask = task
         task.resume()
 
-        // Send initial stream open
-        send(StanzaBuilder.streamOpen(to: domain), phase: .waitingFeatures)
-
-        // Receive loop
-        receiveLoop()
-
-        // Keep main thread alive (CLI tool)
+        // Keep main thread alive (CLI tool).
+        // The receive loop and initial stream-open are started from
+        // didOpenWithProtocol once the WebSocket handshake completes.
         dispatchMain()
     }
 
@@ -119,6 +115,12 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
         didOpenWithProtocol proto: String?
     ) {
         log("WebSocket opened, protocol: \(proto ?? "<none>")")
+        // Start the receive loop and send the initial XMPP stream open now that
+        // the WebSocket handshake has completed.  Doing this earlier (before the
+        // delegate fires) is racy: URLSessionWebSocketTask may silently discard
+        // a send() that arrives before the upgrade is confirmed.
+        receiveLoop()
+        send(StanzaBuilder.streamOpen(to: domain), phase: .waitingFeatures)
     }
 
     func urlSession(
