@@ -26,7 +26,7 @@ public struct JingleSession: Sendable {
     public let sid: String
     public let initiator: String?
     public let responder: String?
-    /// BUNDLE group (urn:ietf:rfc:5888) content names, if present.
+    /// BUNDLE/grouping content names, if present.
     public let bundleGroup: [String]
     public let contents: [JingleContent]
 
@@ -38,9 +38,15 @@ public struct JingleSession: Sendable {
         responder = element.attr("responder")
 
         bundleGroup = element
-            .firstChild(localName: "group", namespace: XMPPNS.bundle)?
-            .allChildren(localName: "content")
-            .compactMap { $0.attr("name") } ?? []
+            .firstChild(localName: "group", namespace: XMPPNS.bundle)
+            ?? element.firstChild(localName: "group", namespace: XMPPNS.jingleGrouping)
+            ?? nil
+            .flatMap { $0 }
+            ?? element.firstChild(localName: "group", namespace: XMPPNS.bundle)
+            ?? element.firstChild(localName: "group", namespace: XMPPNS.jingleGrouping)
+            .map { $0 }
+            .flatMap { $0.allChildren(localName: "content").compactMap { $0.attr("name") } }
+            ?? []
 
         contents = element.allChildren(localName: "content").map { JingleContent(element: $0) }
     }

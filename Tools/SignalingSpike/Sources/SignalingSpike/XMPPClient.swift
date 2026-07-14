@@ -12,6 +12,77 @@ import FoundationXML
 
 // MARK: - Connection state
 
+private struct TranscriptFrame: Codable {
+    let seq: Int
+    let direction: String
+    let timestamp: String
+    let note: String
+    let data: String
+}
+
+private struct Transcript: Codable {
+    let version: String
+    let endpoint: String
+    let capturedAt: String
+    let note: String
+    var myJID: String?
+    let room: String
+    let frames: [TranscriptFrame]
+}
+
+private final class TranscriptRecorder {
+    private let endpoint: String
+    private let room: String
+    private let note: String
+    private let timestampFormatter: ISO8601DateFormatter
+    private var frames: [TranscriptFrame] = []
+    private var nextSeq = 1
+
+    var myJID: String?
+
+    init(endpoint: String, room: String, note: String) {
+        self.endpoint = endpoint
+        self.room = room
+        self.note = note
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        self.timestampFormatter = formatter
+    }
+
+    func recordSent(_ stanza: String, note: String) {
+        append(direction: "sent", note: note, data: stanza)
+    }
+
+    func recordReceived(_ stanza: String, note: String) {
+        append(direction: "received", note: note, data: stanza)
+    }
+
+    func export() -> Transcript {
+        Transcript(
+            version: "1.0",
+            endpoint: endpoint,
+            capturedAt: timestampFormatter.string(from: Date()),
+            note: note,
+            myJID: myJID,
+            room: room,
+            frames: frames
+        )
+    }
+
+    private func append(direction: String, note: String, data: String) {
+        frames.append(
+            TranscriptFrame(
+                seq: nextSeq,
+                direction: direction,
+                timestamp: timestampFormatter.string(from: Date()),
+                note: note,
+                data: data
+            )
+        )
+        nextSeq += 1
+    }
+}
+
 enum XMPPPhase {
     case connecting
     case waitingFeatures        // after stream open sent
@@ -72,20 +143,31 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
     private let domain: String
     private let room: String
     private let nick: String
+    private let emitJSON: Bool
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var phase: XMPPPhase = .connecting
     private var myJID: String?
     private var boundID = 1
+    private let transcriptRecorder: TranscriptRecorder?
+    private var didFinish = false
 
     // Logging helpers
     private let log: (String) -> Void
 
-    init(domain: String, room: String, nick: String, log: @escaping (String) -> Void = { print($0) }) {
+    init(
+        domain: String,
+        room: String,
+        nick: String,
+        emitJSON: Bool,
+        log: @escaping (String) -> Void = { print($0) }
+    ) {
         self.domain = domain
         self.room = room
         self.nick = nick
-        self.log = log
+        self.emitJSON = emitJSON
+        self.log = emitJSON ? { _ in } : log
+        self.transcriptRecorder = emitJSON ? TranscriptRecorder(endpoint: domain, room: room, note: "Live capture from Tools/SignalingSpike") : nil
     }
 
     // MARK: - Entry point
@@ -131,7 +213,7 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
     ) {
         let msg = reason.flatMap { String(data: $0, encoding: .utf8) } ?? ""
         log("WebSocket closed: \(closeCode) \(msg)")
-        exit(0)
+        finish(0)
     }
 
     // MARK: - Receive loop
@@ -155,7 +237,7 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
 
             case .failure(let error):
                 self.log("Receive error: \(error)")
-                exit(1)
+                self.finish(1)
             }
         }
     }
@@ -163,6 +245,7 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
     // MARK: - Frame dispatch
 
     private func handle(frame: String) {
+        let elementNote: String
         log("← \(frame.prefix(200))\(frame.count > 200 ? "…" : "")")
 
         let detector = StanzaDetector()
@@ -173,6 +256,35 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
 
         let element = detector.rootElementName ?? ""
         let attrs = detector.rootAttributes
+
+        switch element {
+        case "open":
+            elementNote = "Received XMPP stream open"
+        case "features":
+            elementNote = "Received stream features"
+        case "success":
+            elementNote = "Received SASL success"
+        case "iq":
+            elementNote = attrs["type"] == "result" ? "Received IQ result" : "Received IQ"
+        case "presence":
+            elementNote = "Received presence"
+        default:
+            elementNote = "Received stanza"
+        }
+
+        transcriptRecorder?.recordReceived(frame, note: elementNote)
+
+        if element == "iq", attrs["type"] == "set", frame.contains("session-initiate") {
+            log("\n====== SESSION-INITIATE RECEIVED ======")
+            log(frame)
+            log("======================================\n")
+            let iqID = attrs["id"] ?? ""
+            let iqFrom = attrs["from"] ?? ""
+            if !iqID.isEmpty {
+                send(StanzaBuilder.jingleAck(to: iqFrom, id: iqID), phase: .done, note: "Jingle session-initiate ACK")
+            }
+            return
+        }
 
         switch phase {
         case .waitingFeatures:
@@ -211,6 +323,7 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
                    let jidEnd = frame.range(of: "</jid>") {
                     let jid = String(frame[jidRange.upperBound..<jidEnd.lowerBound])
                     myJID = jid
+                    transcriptRecorder?.myJID = jid
                     log("Bound JID: \(jid)")
                 }
                 phase = .ready
@@ -237,23 +350,11 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
                 if frame.contains("focus") && (frame.contains("moderator") || from.hasSuffix("/focus")) {
                     log("✓ Focus (Jicofo) joined: \(from)")
                 }
-            } else if element == "iq", attrs["type"] == "set" {
-                if frame.contains("session-initiate") {
-                    log("\n====== SESSION-INITIATE RECEIVED ======")
-                    log(frame)
-                    log("======================================\n")
-                    // ACK the IQ
-                    let iqID = attrs["id"] ?? ""
-                    let iqFrom = attrs["from"] ?? ""
-                    if !iqID.isEmpty {
-                        send(StanzaBuilder.jingleAck(to: iqFrom, id: iqID), phase: .done)
-                    }
-                }
             }
 
         case .done:
             log("Session complete. Exiting.")
-            exit(0)
+            finish(0)
 
         default:
             // Handle unexpected stanzas for informational features
@@ -275,37 +376,54 @@ final class XMPPClient: NSObject, URLSessionWebSocketDelegate, @unchecked Sendab
     private func onReady() {
         // 1. disco#info on server domain
         let d1 = StanzaBuilder.discoInfoGet(to: domain, id: "disco_1")
-        send(d1)
+        send(d1, note: "Service discovery on server domain")
         log("→ disco#info to \(domain)")
 
         // 2. disco#info on conference component
         let confDomain = "conference.\(domain)"
         let d2 = StanzaBuilder.discoInfoGet(to: confDomain, id: "disco_2")
-        send(d2)
+        send(d2, note: "Service discovery on conference component")
         log("→ disco#info to \(confDomain)")
 
         // 3. XEP-0215 external service discovery
         let ext = StanzaBuilder.extDiscoGet(to: domain, id: "extdisco_1")
-        send(ext)
+        send(ext, note: "External service discovery")
         log("→ extdisco to \(domain)")
 
         // 4. Join the MUC
         let statsID = "SpikeDevice-\(Int.random(in: 10000...99999))"
         let joinXML = StanzaBuilder.mucJoin(room: room, nick: nick, statsID: statsID)
-        send(joinXML)
+        send(joinXML, note: "MUC join presence")
         log("→ MUC join presence to \(room)/\(nick)")
         phase = .joinedMUC
     }
 
     // MARK: - Send helper
 
-    private func send(_ stanza: String, phase newPhase: XMPPPhase? = nil) {
+    private func send(_ stanza: String, phase newPhase: XMPPPhase? = nil, note: String = "Sent stanza") {
         if let p = newPhase { phase = p }
         log("→ \(stanza.prefix(160))\(stanza.count > 160 ? "…" : "")")
+        transcriptRecorder?.recordSent(stanza, note: note)
         webSocketTask?.send(.string(stanza)) { [weak self] error in
             if let error {
                 self?.log("Send error: \(error)")
             }
         }
+    }
+
+    private func finish(_ code: Int) {
+        guard !didFinish else { return }
+        didFinish = true
+
+        if emitJSON, let transcriptRecorder {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            if let data = try? encoder.encode(transcriptRecorder.export()),
+               let json = String(data: data, encoding: .utf8) {
+                print(json)
+            }
+        }
+
+        exit(Int32(code))
     }
 }

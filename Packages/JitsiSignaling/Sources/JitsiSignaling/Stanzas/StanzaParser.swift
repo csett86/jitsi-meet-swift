@@ -18,6 +18,7 @@ enum XMPPNS {
     static let jingleSSMA  = "urn:xmpp:jingle:apps:rtp:ssma:0"
     static let jingleRtcpFB = "urn:xmpp:jingle:apps:rtp:rtcp-fb:0"
     static let jingleHdrExt = "urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"
+    static let jingleGrouping = "urn:xmpp:jingle:apps:grouping:0"
     static let extdisco    = "urn:xmpp:extdisco:2"
     static let nick        = "http://jabber.org/protocol/nick"
     static let jitsiMeet   = "http://jitsi.org/jitmeet"

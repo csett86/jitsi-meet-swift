@@ -105,9 +105,9 @@ struct StanzaParserTests {
 
     // MARK: Disco#info
 
-    @Test("frame 12 — server disco#info result has extdisco feature")
+    @Test("frame 15 — server disco#info result has extdisco feature")
     func serverDiscoInfo() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 12 })
+        let frame = try #require(receivedFrames.first { $0.seq == 15 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .iq(let iq) = stanza,
               case .discoInfo(let result) = iq.payload else {
@@ -117,9 +117,9 @@ struct StanzaParserTests {
         #expect(result.supports("urn:xmpp:extdisco:2"))
     }
 
-    @Test("frame 14 — conference disco#info reports lobby support")
+    @Test("frame 16 — conference disco#info reports MUC support")
     func conferenceDiscoInfo() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 14 })
+        let frame = try #require(receivedFrames.first { $0.seq == 16 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .iq(let iq) = stanza,
               case .discoInfo(let result) = iq.payload else {
@@ -127,14 +127,14 @@ struct StanzaParserTests {
             return
         }
         #expect(result.supports("http://jabber.org/protocol/muc"))
-        #expect(result.supports("http://jitsi.org/lobby"))
+        #expect(result.supports("http://jabber.org/protocol/muc#unique"))
     }
 
     // MARK: External services
 
-    @Test("frame 16 — external services include STUN and TURN")
+    @Test("frame 17 — external services include STUN and TURN")
     func externalServices() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 16 })
+        let frame = try #require(receivedFrames.first { $0.seq == 17 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .iq(let iq) = stanza,
               case .externalServices(let svcs) = iq.payload else {
@@ -148,9 +148,9 @@ struct StanzaParserTests {
 
     // MARK: MUC presence
 
-    @Test("frame 18 — self-presence in MUC (status code 110)")
+    @Test("frame 21 — self-presence in MUC (status code 110)")
     func selfPresence() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 18 })
+        let frame = try #require(receivedFrames.first { $0.seq == 21 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .presence(let p) = stanza else {
             Issue.record("Expected .presence, got \(stanza)")
@@ -168,37 +168,35 @@ struct StanzaParserTests {
             Issue.record("Expected .presence, got \(stanza)")
             return
         }
-        #expect(p.nick == "focus")
+        #expect(p.from?.hasSuffix("/focus") == true)
         #expect(p.mucUser?.items.first?.role == "moderator")
     }
 
-    @Test("frame 20 — participant presence with Jitsi extensions")
+    @Test("frame 18 — participant presence with Jitsi extensions")
     func participantPresenceExtensions() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 20 })
+        let frame = try #require(receivedFrames.first { $0.seq == 18 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .presence(let p) = stanza else {
             Issue.record("Expected .presence, got \(stanza)")
             return
         }
-        #expect(p.nick == "Alice")
-        #expect(p.statsID == "AliceDevice1")
-        #expect(p.videoType == "camera")
-        #expect(p.region == "us-east-1")
-        #expect(!p.features.isEmpty)
+        #expect(p.from?.hasPrefix("testroom@conference.alpha.jitsi.net/") == true)
+        #expect(p.mucUser?.items.first?.role == "moderator")
+        #expect(p.mucUser?.items.first?.affiliation == "owner")
     }
 
     // MARK: Jingle session-initiate
 
-    @Test("frame 21 — session-initiate Jingle IQ")
+    @Test("frame 25 — session-initiate Jingle IQ")
     func sessionInitiate() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 21 })
+        let frame = try #require(receivedFrames.first { $0.seq == 25 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .iq(let iq) = stanza else {
             Issue.record("Expected IQ stanza, got \(stanza)")
             return
         }
         #expect(iq.type == .set)
-        #expect(iq.from?.contains("focus@auth.alpha.jitsi.net") == true)
+        #expect(iq.from?.hasPrefix("testroom@conference.alpha.jitsi.net/") == true)
 
         guard case .jingle(let jingle) = iq.payload else {
             Issue.record("Expected .jingle payload, got \(iq.payload)")
@@ -208,26 +206,26 @@ struct StanzaParserTests {
         #expect(!jingle.sid.isEmpty)
         #expect(jingle.contents.count == 2)
 
-        let audio = try #require(jingle.contents.first { $0.name == "audio" })
+        let audio = try #require(jingle.contents.first { $0.name == "0" })
         #expect(audio.description?.media == "audio")
         #expect(audio.description?.payloadTypes.isEmpty == false)
         #expect(audio.transport?.fingerprint != nil)
 
-        let video = try #require(jingle.contents.first { $0.name == "video" })
+        let video = try #require(jingle.contents.first { $0.name == "1" })
         #expect(video.description?.media == "video")
 
         // BUNDLE group
-        #expect(jingle.bundleGroup.contains("audio"))
-        #expect(jingle.bundleGroup.contains("video"))
+        #expect(jingle.bundleGroup.contains("0"))
+        #expect(jingle.bundleGroup.contains("1"))
     }
 
     @Test("session-initiate opus payload has correct parameters")
     func opusPayloadParameters() throws {
-        let frame = try #require(receivedFrames.first { $0.seq == 21 })
+        let frame = try #require(receivedFrames.first { $0.seq == 25 })
         let stanza = StanzaParser.parse(frame.data)
         guard case .iq(let iq) = stanza,
               case .jingle(let jingle) = iq.payload,
-              let audio = jingle.contents.first(where: { $0.name == "audio" }),
+              let audio = jingle.contents.first(where: { $0.name == "0" }),
               let opus = audio.description?.payloadTypes.first(where: { $0.name == "opus" }) else {
             Issue.record("Could not reach opus payload type")
             return
@@ -243,8 +241,8 @@ struct StanzaParserTests {
 
     @Test("BackendCapabilities built from fixture disco results")
     func backendCapabilities() throws {
-        let serverFrame = try #require(receivedFrames.first { $0.seq == 12 })
-        let mucFrame = try #require(receivedFrames.first { $0.seq == 14 })
+        let serverFrame = try #require(receivedFrames.first { $0.seq == 15 })
+        let mucFrame = try #require(receivedFrames.first { $0.seq == 16 })
 
         guard case .iq(let serverIQ) = StanzaParser.parse(serverFrame.data),
               case .discoInfo(let serverInfo) = serverIQ.payload else {
@@ -259,9 +257,9 @@ struct StanzaParserTests {
 
         let caps = BackendCapabilities(serverInfo: serverInfo, mucInfo: mucInfo)
         #expect(caps.supportsExtdisco)
-        #expect(caps.supportsLobby)
-        #expect(caps.supportsVisitors)
-        #expect(!caps.supportsE2EE)   // not in our synthetic fixture
+        #expect(!caps.supportsLobby)
+        #expect(!caps.supportsVisitors)
+        #expect(!caps.supportsE2EE)
     }
 
     // MARK: TURNDiscovery helpers

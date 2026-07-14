@@ -3,7 +3,7 @@
 ## Primary Target
 
 **URL:** `https://alpha.jitsi.net`  
-**Last verified:** 2026-07-12  
+**Last verified:** 2026-07-14  
 **Deployment type:** Anonymous (no JWT, no lobby, no authentication required)
 
 ## Connection Parameters Derived from URL

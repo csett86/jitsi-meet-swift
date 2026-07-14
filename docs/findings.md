@@ -10,6 +10,21 @@ order (newest first).
 
 ---
 
+## 2026-07-14 — Live spike comparison: alpha join diverges at MUC presence
+
+**Endpoint:** alpha.jitsi.net  
+**Phase:** Phase 0
+
+**Observed:** The signaling spike successfully connected, negotiated SASL ANONYMOUS, and bound a resource, but the live `testroom@conference.alpha.jitsi.net` join returned a `presence type='error'` instead of progressing into the fixture's self-presence and `session-initiate` flow. The server also advertised extra features in `stream:features` beyond the synthetic fixture's minimal ANONYMOUS-only shape.
+
+**Assumed:** The synthetic fixture represented the live happy path to session-initiate.
+
+**Impact:** The synthetic fixture has been replaced with the live browser capture from `TestRoom`, and the spike now has an optional `--json` mode for repeatable transcript capture. The parser also accepts the live alpha grouping namespace observed in session-initiate.
+
+**Status:** Resolved
+
+---
+
 ## Template
 
 ```
