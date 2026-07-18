@@ -1,0 +1,162 @@
+[
+  {
+    "direction": "out",
+    "timestamp": 1.0136,
+    "payload": "<open xmlns=\"urn:ietf:params:xml:ns:xmpp-framing\" to=\"jitsi.luki.org\" version=\"1.0\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.1539,
+    "payload": "<open version='1.0' xml:lang='en' xmlns='urn:ietf:params:xml:ns:xmpp-framing' from='jitsi.luki.org' id='79aa6273-548a-4c24-9d72-6ed12ea99a14'/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.154,
+    "payload": "<stream:features xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>ANONYMOUS</mechanism></mechanisms><register xmlns='http://jabber.org/features/iq-register'/><register xmlns='urn:xmpp:invite'/><register xmlns='urn:xmpp:ibr-token:0'/><limits xmlns='urn:xmpp:stream-limits:0'><max-bytes>10000</max-bytes><idle-seconds>840</idle-seconds></limits></stream:features>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 1.6147,
+    "payload": "<auth xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\" mechanism=\"ANONYMOUS\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.7529,
+    "payload": "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 2.2167,
+    "payload": "<open xmlns=\"urn:ietf:params:xml:ns:xmpp-framing\" to=\"jitsi.luki.org\" version=\"1.0\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 2.3572,
+    "payload": "<open version='1.0' xml:lang='en' xmlns='urn:ietf:params:xml:ns:xmpp-framing' from='jitsi.luki.org' id='11d5b9fa-a53d-4d61-ad42-80429a6e7cd9'/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 2.3573,
+    "payload": "<stream:features xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'><csi xmlns='urn:xmpp:csi:0'/><c hash='sha-1' xmlns='http://jabber.org/protocol/caps' node='http://prosody.im' ver='7Jpb6Z4GpyPX9I8TT3l8GUDzhYA='/><ver xmlns='urn:xmpp:features:rosterver'/><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><required/></bind><session xmlns='urn:ietf:params:xml:ns:xmpp-session'><optional/></session><sub xmlns='urn:xmpp:features:pre-approval'/><sm xmlns='urn:xmpp:sm:2'/><sm xmlns='urn:xmpp:sm:3'/><limits xmlns='urn:xmpp:stream-limits:0'><max-bytes>262144</max-bytes><idle-seconds>840</idle-seconds></limits></stream:features>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 2.818,
+    "payload": "<iq type=\"set\" id=\"bind1\" xmlns=\"jabber:client\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"/></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 2.977,
+    "payload": "<iq type='result' xmlns='jabber:client' id='bind1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><jid>xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT</jid></bind></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 3.4198,
+    "payload": "<iq type=\"get\" id=\"disco1\" to=\"jitsi.luki.org\" xmlns=\"jabber:client\"><query xmlns=\"http://jabber.org/protocol/disco#info\"/></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 3.5605,
+    "payload": "<iq type='result' from='jitsi.luki.org' xmlns='jabber:client' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' id='disco1'><query xmlns='http://jabber.org/protocol/disco#info'><identity category='component' type='breakout_rooms' name='breakout.jitsi.luki.org'/><identity category='component' type='lobbyrooms' name='lobby.jitsi.luki.org'/><identity category='component' type='conference_duration' name='conferenceduration.jitsi.luki.org'/><identity category='server' type='im' name='Prosody'/><identity category='component' type='end_conference' name='endconference.jitsi.luki.org'/><identity category='component' type='speakerstats' name='speakerstats.jitsi.luki.org'/><identity category='component' type='polls' name='polls.jitsi.luki.org'/><identity category='component' type='room_metadata' name='metadata.jitsi.luki.org'/><identity category='component' type='av_moderation' name='avmoderation.jitsi.luki.org'/><feature var='urn:xmpp:ping'/><feature var='urn:xmpp:carbons:rules:0'/><feature var='urn:xmpp:carbons:2'/><feature var='jabber:iq:private'/><feature var='http://jabber.org/protocol/disco#info'/><feature var='http://jabber.org/protocol/disco#items'/><feature var='urn:xmpp:extdisco:2'/><feature var='urn:xmpp:extdisco:1'/><feature var='urn:xmpp:time'/><feature var='msgoffline'/><feature var='vcard-temp'/><feature var='jabber:iq:last'/><feature var='jabber:iq:register'/><feature var='jabber:iq:roster'/><feature var='jabber:iq:version'/><feature var='urn:xmpp:blocking'/><feature var='http://jabber.org/protocol/commands'/></query></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 3.721,
+    "payload": "<iq type=\"get\" id=\"ext2\" to=\"jitsi.luki.org\" xmlns=\"jabber:client\"><services xmlns=\"urn:xmpp:extdisco:2\"/></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 3.8632,
+    "payload": "<iq type='result' from='jitsi.luki.org' xmlns='jabber:client' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' id='ext2'><services xmlns='urn:xmpp:extdisco:2'><service port='3478' type='stun' host='turn.jitsi.luki.org'/><service password='REDACTED' type='turn' transport='udp' host='turn.jitsi.luki.org' expires='2026-07-18T21:11:06Z' restricted='1' username='1784409066' port='3478'/><service password='REDACTED' type='turn' transport='tcp' host='turn.jitsi.luki.org' expires='2026-07-18T21:11:06Z' restricted='1' username='1784409066' port='3478'/><service password='REDACTED' type='turn' transport='tcp' host='turn.jitsi.luki.org' expires='2026-07-18T21:11:06Z' restricted='1' username='1784409066' port='443'/></services></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 4.0227,
+    "payload": "<iq type=\"set\" id=\"conf1\" to=\"focus.jitsi.luki.org\" xmlns=\"jabber:client\"><conference xmlns=\"http://jitsi.org/protocol/focus\" room=\"jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org\" machine-uid=\"031749a8d35641699aad39e241e57bd4\"/></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 4.2292,
+    "payload": "<iq type='result' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en-US' xmlns='jabber:client' from='focus.jitsi.luki.org' id='conf1'><conference ready='true' room='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org' focusjid='focus@auth.jitsi.luki.org' xmlns='http://jitsi.org/protocol/focus'><property value='false' name='authentication'/><property value='false' name='visitors-supported'/></conference></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 5.0243,
+    "payload": "<presence to=\"jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botA3358\" xmlns=\"jabber:client\"><x xmlns=\"http://jabber.org/protocol/muc\"/><stats-id>botA3358</stats-id><nick xmlns=\"http://jabber.org/protocol/nick\">botA3358</nick><videomuted xmlns=\"http://jitsi.org/jitmeet/video\">false</videomuted><audiomuted xmlns=\"http://jitsi.org/jitmeet/audio\">false</audiomuted></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1677,
+    "payload": "<presence from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus' xml:lang='en-US' xmlns='jabber:client' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' id='YPQBF-806'><priority>0</priority><etherpad xmlns='http://jitsi.org/jitmeet/etherpad'>jitsimeetswiftfixturecapture4543a06c</etherpad><versions xmlns='http://jitsi.org/jitmeet'><component name='focus'>1.0.1180</component></versions><conference-properties xmlns='http://jitsi.org/protocol/focus'><property key='support-terminate-restart' value='true'/></conference-properties><c hash='sha-1' ver='Lg0vhCNhxjoeKJi2/hukdsizNWA=' node='http://jitsi.org/jicofo' xmlns='http://jabber.org/protocol/caps'/><x xmlns='vcard-temp:x:update'><photo/></x><occupant-id xmlns='urn:xmpp:occupant-id:0' id='xOaE4gZlTBFkaUmMYqx8vJzoSCigMvf3oBa1wYcmPBU='/><x xmlns='http://jabber.org/protocol/muc#user'><item role='moderator' affiliation='owner' jid='focus@auth.jitsi.luki.org/focus'/></x></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1677,
+    "payload": "<message from='metadata.jitsi.luki.org' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xmlns='jabber:client'><json-message room='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org' xmlns='http://jitsi.org/jitmeet'>{&quot;metadata&quot;:{&quot;services&quot;:[{&quot;port&quot;:&quot;3478&quot;,&quot;type&quot;:&quot;stun&quot;,&quot;host&quot;:&quot;turn.jitsi.luki.org&quot;},{&quot;password&quot;:&quot;REDACTED&quot;,&quot;type&quot;:&quot;turn&quot;,&quot;transport&quot;:&quot;udp&quot;,&quot;host&quot;:&quot;turn.jitsi.luki.org&quot;,&quot;expires&quot;:&quot;2026-07-18T21:11:07Z&quot;,&quot;restricted&quot;:&quot;1&quot;,&quot;username&quot;:&quot;1784409067&quot;,&quot;port&quot;:&quot;3478&quot;},{&quot;password&quot;:&quot;REDACTED&quot;,&quot;type&quot;:&quot;turn&quot;,&quot;transport&quot;:&quot;tcp&quot;,&quot;host&quot;:&quot;turn.jitsi.luki.org&quot;,&quot;expires&quot;:&quot;2026-07-18T21:11:07Z&quot;,&quot;restricted&quot;:&quot;1&quot;,&quot;username&quot;:&quot;1784409067&quot;,&quot;port&quot;:&quot;3478&quot;},{&quot;password&quot;:&quot;REDACTED&quot;,&quot;type&quot;:&quot;turn&quot;,&quot;transport&quot;:&quot;tcp&quot;,&quot;host&quot;:&quot;turn.jitsi.luki.org&quot;,&quot;expires&quot;:&quot;2026-07-18T21:11:07Z&quot;,&quot;restricted&quot;:&quot;1&quot;,&quot;username&quot;:&quot;1784409067&quot;,&quot;port&quot;:&quot;443&quot;}]},&quot;type&quot;:&quot;room_metadata&quot;}</json-message></message>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1678,
+    "payload": "<presence xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botA3358' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en'><stats-id>botA3358</stats-id><nick xmlns='http://jabber.org/protocol/nick'>botA3358</nick><videomuted xmlns='http://jitsi.org/jitmeet/video'>false</videomuted><audiomuted xmlns='http://jitsi.org/jitmeet/audio'>false</audiomuted><x xmlns='vcard-temp:x:update'><photo/></x><occupant-id xmlns='urn:xmpp:occupant-id:0' id='NSqVlfc9Qy30cNq6+uGJ+yN8flWLRn4UrMunikeiNd8='/><x xmlns='http://jabber.org/protocol/muc#user'><status code='100'/><item role='participant' affiliation='none' jid='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT'/><status code='110'/></x></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1678,
+    "payload": "<message from='conferenceduration.jitsi.luki.org' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xmlns='jabber:client'><json-message xmlns='http://jitsi.org/jitmeet'>{&quot;type&quot;:&quot;conference_duration&quot;}</json-message></message>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1679,
+    "payload": "<message to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' type='groupchat' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org' xmlns='jabber:client'><subject/></message>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1716,
+    "payload": "<iq type='get' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en-US' xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus' id='eHppbXBicXRyamRvYzdoenB1eHFocmF3QGppdHNpLmx1a2kub3JnL05VWkthSlQ2cl9xVABZUFFCRi04MDcAM5HdWbfNOJo='><query xmlns='http://jabber.org/protocol/disco#info'/></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 5.1716,
+    "payload": "<iq type=\"result\" to=\"jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus\" id=\"eHppbXBicXRyamRvYzdoenB1eHFocmF3QGppdHNpLmx1a2kub3JnL05VWkthSlQ2cl9xVABZUFFCRi04MDcAM5HdWbfNOJo=\" xmlns=\"jabber:client\"><query xmlns=\"http://jabber.org/protocol/disco#info\"><identity category=\"client\" type=\"pc\" name=\"JitsiMeetSwift\"/><feature var=\"http://jabber.org/protocol/disco#info\"/><feature var=\"urn:xmpp:jingle:1\"/><feature var=\"urn:xmpp:jingle:apps:rtp:1\"/><feature var=\"urn:xmpp:jingle:apps:rtp:audio\"/><feature var=\"urn:xmpp:jingle:apps:rtp:video\"/><feature var=\"urn:xmpp:jingle:transports:ice-udp:1\"/><feature var=\"urn:xmpp:jingle:apps:dtls:0\"/><feature var=\"urn:xmpp:jingle:transports:dtls-sctp:1\"/><feature var=\"urn:ietf:rfc:5761\"/><feature var=\"urn:ietf:rfc:5888\"/><feature var=\"http://jitsi.org/tcc\"/><feature var=\"http://jitsi.org/opus-red\"/><feature var=\"urn:xmpp:jingle:apps:rtp:rtp-hdrext:0\"/></query></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 5.1719,
+    "payload": "<presence xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botA3358' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en'><stats-id>botA3358</stats-id><nick xmlns='http://jabber.org/protocol/nick'>botA3358</nick><videomuted xmlns='http://jitsi.org/jitmeet/video'>false</videomuted><audiomuted xmlns='http://jitsi.org/jitmeet/audio'>false</audiomuted><x xmlns='vcard-temp:x:update'><photo/></x><occupant-id xmlns='urn:xmpp:occupant-id:0' id='NSqVlfc9Qy30cNq6+uGJ+yN8flWLRn4UrMunikeiNd8='/><x xmlns='http://jabber.org/protocol/muc#user'><item role='moderator' affiliation='owner' jid='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT'><actor nick='focus'/></item><status code='110'/></x><permissions xmlns='http://jitsi.org/jitmeet'><p name='livestreaming' val='true'/><p name='transcription' val='true'/><p name='flip' val='true'/><p name='recording' val='true'/><p name='send-groupchat' val='true'/><p name='create-polls' val='true'/><p name='outbound-call' val='true'/></permissions></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 13.8574,
+    "payload": "<presence xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botB0286' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en'><stats-id>botB0286</stats-id><nick xmlns='http://jabber.org/protocol/nick'>botB0286</nick><videomuted xmlns='http://jitsi.org/jitmeet/video'>false</videomuted><audiomuted xmlns='http://jitsi.org/jitmeet/audio'>false</audiomuted><x xmlns='vcard-temp:x:update'><photo/></x><occupant-id id='AXRG+/Kn8Mz97fbxxs9FzAfomFTCrLPj0XH9VJRwhNQ=' xmlns='urn:xmpp:occupant-id:0'/><x xmlns='http://jabber.org/protocol/muc#user'><item role='participant' affiliation='none' jid='ugrk1ura9d9zfiqkbulxottc@jitsi.luki.org/bTdUqlS62NRn'/></x></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 14.0603,
+    "payload": "<presence to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en-US' xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus' id='YPQBF-806'><priority>0</priority><etherpad xmlns='http://jitsi.org/jitmeet/etherpad'>jitsimeetswiftfixturecapture4543a06c</etherpad><versions xmlns='http://jitsi.org/jitmeet'><component name='focus'>1.0.1180</component></versions><conference-properties xmlns='http://jitsi.org/protocol/focus'><property key='support-terminate-restart' value='true'/><property key='bridge-count' value='1'/></conference-properties><c hash='sha-1' xmlns='http://jabber.org/protocol/caps' node='http://jitsi.org/jicofo' ver='Lg0vhCNhxjoeKJi2/hukdsizNWA='/><x xmlns='vcard-temp:x:update'><photo/></x><occupant-id id='xOaE4gZlTBFkaUmMYqx8vJzoSCigMvf3oBa1wYcmPBU=' xmlns='urn:xmpp:occupant-id:0'/><x xmlns='http://jabber.org/protocol/muc#user'><item role='moderator' affiliation='owner' jid='focus@auth.jitsi.luki.org/focus'/></x></presence>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 14.1536,
+    "payload": "<iq type='set' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en-US' xmlns='jabber:client' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus' id='eHppbXBicXRyamRvYzdoenB1eHFocmF3QGppdHNpLmx1a2kub3JnL05VWkthSlQ2cl9xVAAyMjdTMy01NDg3OTYAM5HdWbfNOJo='><jingle sid='9pupqtidrilf8' action='session-initiate' initiator='focus@auth.jitsi.luki.org/focus' xmlns='urn:xmpp:jingle:1'><content creator='initiator' senders='both' name='audio'><description media='audio' maxptime='60' xmlns='urn:xmpp:jingle:apps:rtp:1'><payload-type name='opus' clockrate='48000' channels='2' id='111'><parameter value='10' name='minptime'/><parameter value='1' name='useinbandfec'/><rtcp-fb type='transport-cc' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/></payload-type><payload-type clockrate='8000' id='126' name='telephone-event'/><rtp-hdrext id='1' uri='urn:ietf:params:rtp-hdrext:ssrc-audio-level' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtp-hdrext id='10' uri='urn:ietf:params:rtp-hdrext:sdes:mid' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtp-hdrext id='5' uri='http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><extmap-allow-mixed xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtcp-mux/><source ssrc='1163959471' name='jvb-a0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='jvb' xmlns='http://jitsi.org/jitmeet'/><parameter value='mixedmslabel mixedlabelaudio0' name='msid' xmlns='urn:xmpp:jingle:apps:rtp:1'/></source></description><transport ufrag='av36r1jtrdlguu' pwd='1gq1k3v59457mnu0l7ml3633is' xmlns='urn:xmpp:jingle:transports:ice-udp:1'><web-socket url='wss://jitsi.luki.org:443/colibri-ws/default-id/8ac2521e54963c46/botA3358?pwd=1gq1k3v59457mnu0l7ml3633is' xmlns='http://jitsi.org/protocol/colibri'/><rtcp-mux/><fingerprint hash='sha-256' cryptex='false' required='false' setup='actpass' xmlns='urn:xmpp:jingle:apps:dtls:0'>C7:BA:2C:EC:71:6E:D2:62:C6:3C:67:64:02:2A:2E:05:96:6E:14:81:F8:65:50:F1:93:33:ED:03:8F:9B:0B:76</fingerprint><candidate priority='2130706431' ip='10.0.1.2' id='7183cf9946cfb5a9069df6e5d' protocol='udp' type='host' component='1' generation='0' foundation='1' network='0' port='10000'/><candidate priority='2130706431' ip='2a01:4f8:10b:21ae:0:0:0:2' id='5d55cfd546cfb5a90ffffffff8aeb9203' protocol='udp' type='host' component='1' generation='0' foundation='2' network='0' port='10000'/><candidate priority='2113932031' ip='94.130.36.77' id='32c53ce146cfb5a90ffffffffbe6191a8' protocol='udp' type='host' component='1' generation='0' foundation='3' network='0' port='10000'/></transport></content><content creator='initiator' senders='both' name='video'><description media='video' xmlns='urn:xmpp:jingle:apps:rtp:1'><payload-type clockrate='90000' id='41' name='AV1'><rtcp-fb type='ccm' subtype='fir' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' subtype='pli' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='transport-cc' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/></payload-type><payload-type clockrate='90000' id='100' name='VP8'><rtcp-fb type='ccm' subtype='fir' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' subtype='pli' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='transport-cc' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/></payload-type><payload-type clockrate='90000' id='107' name='H264'><rtcp-fb type='ccm' subtype='fir' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' subtype='pli' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='transport-cc' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><parameter value='42e01f;level-asymmetry-allowed=1;packetization-mode=1;' name='profile-level-id'/></payload-type><payload-type clockrate='90000' id='101' name='VP9'><rtcp-fb type='ccm' subtype='fir' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='nack' subtype='pli' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/><rtcp-fb type='transport-cc' xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'/></payload-type><rtp-hdrext id='11' uri='https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtp-hdrext id='10' uri='urn:ietf:params:rtp-hdrext:sdes:mid' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtp-hdrext id='3' uri='http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtp-hdrext id='5' uri='http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01' xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><extmap-allow-mixed xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'/><rtcp-mux/><source ssrc='990188818' name='jvb-v0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='jvb' xmlns='http://jitsi.org/jitmeet'/><parameter value='mixedmslabel mixedlabelvideo0' name='msid' xmlns='urn:xmpp:jingle:apps:rtp:1'/></source></description><transport ufrag='av36r1jtrdlguu' pwd='1gq1k3v59457mnu0l7ml3633is' xmlns='urn:xmpp:jingle:transports:ice-udp:1'><web-socket url='wss://jitsi.luki.org:443/colibri-ws/default-id/8ac2521e54963c46/botA3358?pwd=1gq1k3v59457mnu0l7ml3633is' xmlns='http://jitsi.org/protocol/colibri'/><rtcp-mux/><fingerprint hash='sha-256' cryptex='false' required='false' setup='actpass' xmlns='urn:xmpp:jingle:apps:dtls:0'>C7:BA:2C:EC:71:6E:D2:62:C6:3C:67:64:02:2A:2E:05:96:6E:14:81:F8:65:50:F1:93:33:ED:03:8F:9B:0B:76</fingerprint><candidate priority='2130706431' ip='10.0.1.2' id='7183cf9946cfb5a9069df6e5d' protocol='udp' type='host' component='1' generation='0' foundation='1' network='0' port='10000'/><candidate priority='2130706431' ip='2a01:4f8:10b:21ae:0:0:0:2' id='5d55cfd546cfb5a90ffffffff8aeb9203' protocol='udp' type='host' component='1' generation='0' foundation='2' network='0' port='10000'/><candidate priority='2113932031' ip='94.130.36.77' id='32c53ce146cfb5a90ffffffffbe6191a8' protocol='udp' type='host' component='1' generation='0' foundation='3' network='0' port='10000'/></transport></content><group semantics='BUNDLE' xmlns='urn:xmpp:jingle:apps:grouping:0'><content name='audio'/><content name='video'/></group><bridge-session id='15b4a932-3a57-4b6b-baf6-a68d8d457b1f' xmlns='http://jitsi.org/protocol/focus'/></jingle></iq>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 14.1539,
+    "payload": "<iq type=\"result\" to=\"jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/focus\" id=\"eHppbXBicXRyamRvYzdoenB1eHFocmF3QGppdHNpLmx1a2kub3JnL05VWkthSlQ2cl9xVAAyMjdTMy01NDg3OTYAM5HdWbfNOJo=\" xmlns=\"jabber:client\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 23.8394,
+    "payload": "<presence type='unavailable' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botB0286' xmlns='jabber:client'><occupant-id id='AXRG+/Kn8Mz97fbxxs9FzAfomFTCrLPj0XH9VJRwhNQ=' xmlns='urn:xmpp:occupant-id:0'/><x xmlns='http://jabber.org/protocol/muc#user'><item role='none' affiliation='none' jid='ugrk1ura9d9zfiqkbulxottc@jitsi.luki.org/bTdUqlS62NRn'/></x></presence>"
+  },
+  {
+    "direction": "out",
+    "timestamp": 27.1582,
+    "payload": "<presence to=\"jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botA3358\" type=\"unavailable\" xmlns=\"jabber:client\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 27.2995,
+    "payload": "<presence type='unavailable' to='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT' xml:lang='en' from='jitsimeetswiftfixturecapture4543a06c@conference.jitsi.luki.org/botA3358' xmlns='jabber:client'><occupant-id id='NSqVlfc9Qy30cNq6+uGJ+yN8flWLRn4UrMunikeiNd8=' xmlns='urn:xmpp:occupant-id:0'/><x xmlns='http://jabber.org/protocol/muc#user'><item role='none' affiliation='owner' jid='xzimpbqtrjdoc7hzpuxqhraw@jitsi.luki.org/NUZKaJT6r_qT'/><status code='110'/></x></presence>"
+  }
+]

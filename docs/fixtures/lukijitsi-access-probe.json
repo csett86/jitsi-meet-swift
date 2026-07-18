@@ -1,0 +1,17 @@
+[
+  {
+    "direction": "out",
+    "timestamp": 1.1562,
+    "payload": "<open xmlns=\"urn:ietf:params:xml:ns:xmpp-framing\" to=\"jitsi.luki.org\" version=\"1.0\"/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.3445,
+    "payload": "<open version='1.0' xml:lang='en' xmlns='urn:ietf:params:xml:ns:xmpp-framing' from='jitsi.luki.org' id='9a73b33f-7ddb-4bbe-b451-d24a07f7f923'/>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.3446,
+    "payload": "<stream:features xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>ANONYMOUS</mechanism></mechanisms><register xmlns='http://jabber.org/features/iq-register'/><register xmlns='urn:xmpp:invite'/><register xmlns='urn:xmpp:ibr-token:0'/><limits xmlns='urn:xmpp:stream-limits:0'><max-bytes>10000</max-bytes><idle-seconds>840</idle-seconds></limits></stream:features>"
+  }
+]

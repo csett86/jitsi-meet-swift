@@ -1,0 +1,34 @@
+name: CI
+
+# The only gate. Builds and tests the pure-Swift core on Linux. Deterministic,
+# offline, no network, no Apple frameworks. If this is red, the change is not
+# done. Do NOT build JitsiMedia/JitsiApp here — they are Apple-only.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:
+    name: JitsiCore (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.0.3-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build JitsiCore
+        run: swift build --target JitsiCore
+
+      - name: Test JitsiCore (offline, fixture replay)
+        run: swift test --filter JitsiCoreTests
+
+      - name: Guard — JitsiCore must not import Apple frameworks
+        shell: bash
+        run: |
+          # A red line: if JitsiCore ever imports an Apple-only framework, Linux
+          # CI (and the agent's self-verification) breaks. Fail loudly here.
+          if grep -REn 'import[[:space:]]+(AppKit|SwiftUI|AVFoundation|Combine|VideoToolbox|ScreenCaptureKit|CoreMedia|WebRTC)' Sources/JitsiCore; then
+            echo "::error::JitsiCore imports an Apple-only framework. Keep it pure Swift."
+            exit 1
+          fi
