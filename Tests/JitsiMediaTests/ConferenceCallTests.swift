@@ -116,5 +116,55 @@ final class ConferenceCallTests: XCTestCase {
         await primary.leave()
         call.close()
     }
+
+    // MARK: - Live: colibri bridge channel connects over wss (Phase 3)
+
+    /// [MAC] Phase 3, item 1 — the colibri `<web-socket>` from the
+    /// `session-initiate` is reachable over Apple's `URLSession` wss (Linux
+    /// cannot), and receiver constraints can be pushed over it. The dominant
+    /// speaker + actual video effect still need multi-party audio + rendering.
+    func testLiveBridgeChannelConnects() async throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["JITSI_LIVE_TESTS"] == "1",
+                          "Set JITSI_LIVE_TESTS=1 to run the live bridge test.")
+        let base = ProcessInfo.processInfo.environment["JITSI_TEST_URL"]
+            ?? "https://jitsi.luki.org/jitsimeetswiftbridge"
+        let room = base + String(UUID().uuidString.prefix(6)).lowercased()
+        let parsed = try XCTUnwrap(ConferenceURLParser.parse(room))
+
+        let primary = JitsiConference(
+            transport: URLSessionStanzaTransport(url: parsed.config.xmppWebSocketURL),
+            config: parsed.config, roomName: parsed.roomName, nick: "swiftbridge-a")
+        let factory = PeerConnectionFactory()
+        let localMedia = LocalMediaSource(factory: factory.factory)
+        let call = ConferenceCall(conference: primary, factory: factory, localMedia: localMedia)
+
+        let bridgeOpen = expectation(description: "colibri bridge wss opened")
+        bridgeOpen.assertForOverFulfill = false
+        call.onBridgeOpen = { bridgeOpen.fulfill() }
+        // Opportunistic — not asserted (needs real multi-party audio to fire).
+        call.onDominantSpeaker = { print("[bridge] dominant speaker: \($0)\n") }
+
+        let secondary = JitsiConference(
+            transport: URLSessionStanzaTransport(url: parsed.config.xmppWebSocketURL),
+            config: parsed.config, roomName: parsed.roomName, nick: "swiftbridge-b")
+
+        let callTask = Task { await call.run() }
+        let primaryJoin = Task { await primary.join() }
+        let secondaryJoin = Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            await secondary.join()
+        }
+
+        await fulfillment(of: [bridgeOpen], timeout: 45)
+        // Bridge is up — exercise the receiver-constraints send path over it.
+        call.setReceiverConstraints(
+            QualityController.constraints(visibleEndpoints: ["swiftbridge-b"], bandwidth: .medium))
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+
+        callTask.cancel(); secondaryJoin.cancel(); primaryJoin.cancel()
+        await secondary.leave()
+        await primary.leave()
+        call.close()
+    }
 }
 #endif

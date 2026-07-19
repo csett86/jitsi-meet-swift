@@ -28,6 +28,8 @@ public final class MediaSession: NSObject {
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
     /// Dominant-speaker endpoint id, delivered over the colibri bridge channel.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
+    /// Fires once the colibri bridge wss handshake completes.
+    public var onBridgeOpen: (@Sendable () -> Void)?
 
     public init(factory: RTCPeerConnectionFactory, localMedia: LocalMediaSource) {
         self.factory = factory
@@ -68,9 +70,11 @@ public final class MediaSession: NSObject {
         if let wsString = offer.bridgeWebSocketURL, let url = URL(string: wsString) {
             let channel = BridgeChannel(url: url)
             bridge = channel
-            let handler = onDominantSpeaker
+            let speakerHandler = onDominantSpeaker
+            let openHandler = onBridgeOpen
             Task {
-                if let handler { await channel.setDominantSpeakerHandler(handler) }
+                if let speakerHandler { await channel.setDominantSpeakerHandler(speakerHandler) }
+                if let openHandler { await channel.setOpenHandler(openHandler) }
                 await channel.connect()
             }
         }

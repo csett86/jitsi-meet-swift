@@ -17,19 +17,35 @@ import FoundationNetworking
 public actor BridgeChannel {
     private let url: URL
     private let session: URLSession
+    private let delegate: WSDelegate
     private var task: URLSessionWebSocketTask?
     private var receiveLoop: Task<Void, Never>?
 
     /// Called with the dominant-speaker endpoint id when it changes.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
+    /// Called once when the wss handshake completes (the JVB accepted us).
+    public var onOpen: (@Sendable () -> Void)?
+    /// Called when the socket closes, with the close code.
+    public var onClose: (@Sendable (Int) -> Void)?
 
-    public init(url: URL, session: URLSession = URLSession(configuration: .ephemeral)) {
+    public init(url: URL) {
         self.url = url
-        self.session = session
+        self.delegate = WSDelegate()
+        self.session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
     }
 
     public func setDominantSpeakerHandler(_ handler: @escaping @Sendable (String) -> Void) {
         onDominantSpeaker = handler
+    }
+
+    public func setOpenHandler(_ handler: @escaping @Sendable () -> Void) {
+        onOpen = handler
+        delegate.onOpen = handler
+    }
+
+    public func setCloseHandler(_ handler: @escaping @Sendable (Int) -> Void) {
+        onClose = handler
+        delegate.onClose = handler
     }
 
     public func connect() {
@@ -75,6 +91,24 @@ public actor BridgeChannel {
         if let endpoint = EndpointMessage.dominantSpeaker(fromJSON: text) {
             onDominantSpeaker?(endpoint)
         }
+    }
+}
+
+/// Bridges `URLSessionWebSocketDelegate`'s open/close callbacks (delivered on the
+/// session's delegate queue) to `@Sendable` handlers `BridgeChannel` sets before
+/// connecting. Confirming the wss handshake is the [MAC] signal Linux can't give.
+private final class WSDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Sendable {
+    var onOpen: (@Sendable () -> Void)?
+    var onClose: (@Sendable (Int) -> Void)?
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                    didOpenWithProtocol protocol: String?) {
+        onOpen?()
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                    didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        onClose?(closeCode.rawValue)
     }
 }
 #endif
