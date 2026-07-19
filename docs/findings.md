@@ -121,6 +121,24 @@ deployment.
   in newer deployments it travels over the WebRTC bridge data channel. Confirm
   the path on `jitsi.luki.org` when media is wired (`[MAC]`).
 
+## Transport: Linux `URLSessionWebSocketTask` cannot do `wss://` (Phase 1)
+
+The shipping transport is `URLSessionStanzaTransport` (over
+`URLSessionWebSocketTask`). Empirically, on Linux (swift-corelibs Foundation,
+Swift 6.0.3) a `wss://` WebSocket fails immediately with
+`NSURLErrorUnsupportedURL (-1002)`. Apple's Foundation supports it, so:
+
+- The Swift live transport is validated live on **macOS** (`[MAC]` — the Phase 1
+  URLSession confirmation).
+- On **Linux**, the live Swift tests (`JitsiLiveTests`) **skip** rather than
+  fail, and live protocol/server behavior is validated instead via the Python
+  capture + drift check (`Tools/LiveCapture/python`), which use a real WebSocket
+  library and work on Linux.
+
+This is why the deterministic core is driven by `FakeTransport` replaying
+committed fixtures: it needs no working Linux WebSocket, and CI stays green
+offline.
+
 ## Committed fixtures
 
 | File                            | What it is                                             |

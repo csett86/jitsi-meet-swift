@@ -24,7 +24,8 @@ var targets: [Target] = [
     .executableTarget(
         name: "LiveCapture",
         dependencies: ["JitsiCore"],
-        path: "Tools/LiveCapture"
+        path: "Tools/LiveCapture",
+        exclude: ["python"]
     ),
     // Deterministic, offline unit tests. The only CI gate.
     .testTarget(

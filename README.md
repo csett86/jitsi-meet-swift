@@ -52,8 +52,18 @@ and never scheduled. Read **`docs/live-testing.md`** before running anything liv
 
 ## Status
 
-Phase 0 complete on the cloud side: repository/CI scaffolding, the URL parser,
-the stanza parser, and real committed fixtures from jitsi.luki.org (access model
-verified: **SASL ANONYMOUS**; signaling confirmed **classic Jingle / XEP-0166**).
+**Phase 0 & 1 complete on the cloud side.**
+
+- Phase 0: repository/CI scaffolding, the URL parser, the stanza parser, and real
+  committed fixtures from jitsi.luki.org (access model verified: **SASL
+  ANONYMOUS**; signaling confirmed **classic Jingle / XEP-0166**).
+- Phase 1: the signaling library — `StanzaTransport` protocol, `FakeTransport`
+  (fixture replay), `URLSessionStanzaTransport` (live socket), `MUCSession`
+  roster, `BackendCapabilities`/`TURNDiscovery`, and `JitsiConference`, which
+  drives the full join → focus-invite flow and emits a normalized
+  `ParsedSessionDescription`. Fully unit-tested offline over `FakeTransport`.
+  The live Swift transport is `[MAC]` (Linux `URLSession` has no `wss` support);
+  live behavior on Linux is validated via the Python drift check.
+
 See `docs/findings.md`. Media (WebRTC) and UI (SwiftUI) are `[MAC]` — written by
 the agent, verified by a human (`docs/mac-signoff.md`).

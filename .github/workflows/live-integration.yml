@@ -29,15 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Live signaling tests
-        id: live
+      # Swift live tests. On Linux these skip (swift-corelibs URLSession has no
+      # wss WebSocket support) — the Swift transport is exercised live on macOS.
+      - name: Live signaling tests (Swift)
         env:
           JITSI_LIVE_TESTS: "1"
           JITSI_TEST_URL: ${{ inputs.test_url }}
         run: swift test --filter JitsiLiveTests
 
-      # Drift check placeholder: re-capture and diff against committed fixtures,
-      # opening an issue when the server's behavior changes. Wired in Phase 1.
-      - name: Note
-        if: always()
-        run: echo "Live run finished. Drift check + issue-on-failure land with Phase 1 LiveCapture."
+      # Drift check (Python) — a single short client that compares the live
+      # server's handshake markers to the committed fixture. Fails this step
+      # (non-gating) on drift so fixtures get refreshed deliberately.
+      - name: Drift check (Python)
+        run: |
+          pip install --quiet websockets
+          python3 Tools/LiveCapture/python/drift_check.py "${{ inputs.test_url }}"
