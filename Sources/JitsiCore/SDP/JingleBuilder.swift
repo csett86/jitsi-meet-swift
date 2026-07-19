@@ -9,10 +9,17 @@ public enum JingleBuilder {
     /// A `session-accept` that echoes the offered media (payloads, header
     /// extensions, rtcp-mux) and carries our local ICE transport, DTLS
     /// fingerprint, and sending SSRCs from the SDP answer.
-    public static func sessionAccept(sid: String, initiator: String, responder: String,
+    ///
+    /// `to` is the XMPP address we send the reply IQ to — the focus's **MUC
+    /// occupant** JID (`room@conference.…/focus`, i.e. the `from` of the
+    /// `session-initiate`). This is deliberately distinct from the Jingle
+    /// `initiator` attribute (`focus@auth.…/focus`): Jicofo routes Jingle over
+    /// the room, so addressing the reply to the bare auth JID is not delivered.
+    public static func sessionAccept(sid: String, to: String, id: String,
+                                     initiator: String, responder: String,
                                      offer: ParsedSessionDescription, local: LocalSDP) -> String {
         let localByKind = Dictionary(uniqueKeysWithValues: local.media.map { ($0.kind, $0) })
-        var xml = "<iq type='set' to='\(initiator)' xmlns='jabber:client'>"
+        var xml = "<iq type='set' to='\(to)' id='\(id)' xmlns='jabber:client'>"
         xml += "<jingle xmlns='urn:xmpp:jingle:1' action='session-accept' sid='\(sid)'"
         xml += " initiator='\(initiator)' responder='\(responder)'>"
         for media in offer.media {
@@ -23,10 +30,12 @@ public enum JingleBuilder {
     }
 
     /// A `transport-info` carrying trickle ICE candidates for one media section.
-    public static func transportInfo(sid: String, initiator: String, responder: String,
+    /// `to` is the focus occupant JID — see ``sessionAccept(sid:to:id:initiator:responder:offer:local:)``.
+    public static func transportInfo(sid: String, to: String, id: String,
+                                     initiator: String, responder: String,
                                      mediaName: String, ufrag: String?, pwd: String?,
                                      candidates: [ICECandidate]) -> String {
-        var xml = "<iq type='set' to='\(initiator)' xmlns='jabber:client'>"
+        var xml = "<iq type='set' to='\(to)' id='\(id)' xmlns='jabber:client'>"
         xml += "<jingle xmlns='urn:xmpp:jingle:1' action='transport-info' sid='\(sid)'"
         xml += " initiator='\(initiator)' responder='\(responder)'>"
         xml += "<content creator='responder' name='\(mediaName)'>"

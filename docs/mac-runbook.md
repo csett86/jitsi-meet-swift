@@ -64,12 +64,23 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    fixture-derived offer to a real `RTCPeerConnection` on Apple hardware (no live
    server). That same target also drives the shipping `MediaSession.accept()`
    path and confirms the emitted `session-accept` round-trips.
-2. `createAnswer` → `SessionDescriptionMapper.sessionAccept` produces a Jingle
-   `session-accept` the JVB accepts (optionally check at the signaling layer
-   first, `[CLOUD-LIVE]`, before full media). _Local half automated (see item 1);
-   JVB acceptance still needs a live call._
-3. Two-participant call (this app vs. a browser tab in the same dedicated room):
-   audio + video both directions, ICE connects (watch `onIceStateChange`).
+2. `createAnswer` → the Jingle `session-accept` is **accepted by the JVB**.
+   **✅ verified live** — `ConferenceCall` (the `JitsiConference`↔`MediaSession`
+   glue) sends the `session-accept` back with correct addressing (reply IQ → the
+   focus *occupant* JID, with a required IQ `id`) and trickles `transport-info`.
+   Run:
+   ```sh
+   JITSI_LIVE_TESTS=1 swift test --filter testLiveTwoPartyMediaConnects
+   ```
+   A primary (real `RTCPeerConnection`) plus a signaling-only secondary; ICE must
+   reach `connected` — proof Jicofo accepted our answer and the JVB transport
+   came up. (Regression history: Jicofo first rejected our IQs with
+   `bad-request: Missing required 'id' attribute`; the fix was IQ `id`s in
+   `JingleBuilder`.)
+3. Two-participant call with **real media rendering** (this app vs. a browser tab
+   in the same dedicated room): camera/mic RTP both directions, remote video on
+   screen. _Still pending — the headless test above proves connectivity, but
+   actual capture + rendering needs the Phase 4 app + a human._
 
 ### Phase 3 — multi-party stability
 4–5 participants; verify SSRC↔participant mapping, lastN/quality decisions, and

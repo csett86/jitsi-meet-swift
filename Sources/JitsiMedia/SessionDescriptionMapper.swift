@@ -18,15 +18,6 @@ public enum SessionDescriptionMapper {
         RTCSessionDescription(type: .offer, sdp: SDPBuilder.offer(from: description))
     }
 
-    /// Turn our local SDP answer into the Jingle `session-accept` to send back.
-    public static func sessionAccept(localAnswer: RTCSessionDescription,
-                                     offer: ParsedSessionDescription,
-                                     sid: String, initiator: String, responder: String) -> String {
-        let local = SDPAnswerParser.parse(localAnswer.sdp)
-        return JingleBuilder.sessionAccept(sid: sid, initiator: initiator, responder: responder,
-                                           offer: offer, local: local)
-    }
-
     /// A locally-gathered candidate, as a Jingle ICE candidate for trickle.
     public static func iceCandidate(from candidate: RTCIceCandidate) -> ICECandidate? {
         SDPCandidate.parse(candidate.sdp)

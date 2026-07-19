@@ -165,11 +165,17 @@ final class JingleBuilderTests: XCTestCase {
                           candidates: [], sources: [LocalSSRC(ssrc: "888", cname: "me")]),
         ])
         let xml = JingleBuilder.sessionAccept(
-            sid: "abc123", initiator: "focus@auth.jitsi.luki.org/focus",
+            sid: "abc123", to: "room@conference.jitsi.luki.org/focus", id: "iq-1",
+            initiator: "focus@auth.jitsi.luki.org/focus",
             responder: "me@jitsi.luki.org/res", offer: try offer(), local: local)
 
         XCTAssertTrue(xml.contains("action='session-accept'"))
         XCTAssertTrue(xml.contains("sid='abc123'"))
+        // The reply IQ is addressed to the focus occupant (the offer's `from`),
+        // NOT the Jingle initiator (the bare auth JID), and carries a required id.
+        XCTAssertTrue(xml.contains("<iq type='set' to='room@conference.jitsi.luki.org/focus' id='iq-1'"))
+        XCTAssertTrue(xml.contains("initiator='focus@auth.jitsi.luki.org/focus'"))
+        XCTAssertTrue(xml.contains("responder='me@jitsi.luki.org/res'"))
         // Echoes an offered payload (opus).
         XCTAssertTrue(xml.contains("name='opus'"))
         // Carries our local transport + fingerprint + candidate + source.
@@ -190,11 +196,12 @@ final class JingleBuilderTests: XCTestCase {
 
     func testTransportInfoCarriesCandidates() {
         let xml = JingleBuilder.transportInfo(
-            sid: "s", initiator: "focus/f", responder: "me/r", mediaName: "audio",
-            ufrag: "u", pwd: "p",
+            sid: "s", to: "room@conference/focus", id: "iq-9", initiator: "focus/f", responder: "me/r",
+            mediaName: "audio", ufrag: "u", pwd: "p",
             candidates: [ICECandidate(foundation: "1", component: 1, proto: "udp",
                                       priority: 1, ip: "9.9.9.9", port: 1, type: "host")])
         XCTAssertTrue(xml.contains("action='transport-info'"))
+        XCTAssertTrue(xml.contains("<iq type='set' to='room@conference/focus' id='iq-9'"))
         XCTAssertTrue(xml.contains("ip='9.9.9.9'"))
     }
 }

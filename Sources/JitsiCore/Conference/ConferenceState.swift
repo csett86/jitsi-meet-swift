@@ -22,4 +22,17 @@ public enum ConferenceEvent: Equatable, Sendable {
     case iceServers([ICEServer])
     case conferenceReady(ConferenceResponse)
     case sessionDescription(ParsedSessionDescription)
+    /// Trickle ICE candidates the focus sent us in a `transport-info`, per media
+    /// section. The media layer feeds these into the peer connection.
+    case remoteCandidates(RemoteCandidates)
+}
+
+/// Trickle ICE candidates for one media section, parsed from an inbound Jingle
+/// `transport-info`.
+public struct RemoteCandidates: Equatable, Sendable {
+    public var mediaName: String        // "audio" / "video"
+    public var candidates: [ICECandidate]
+    public init(mediaName: String, candidates: [ICECandidate]) {
+        self.mediaName = mediaName; self.candidates = candidates
+    }
 }

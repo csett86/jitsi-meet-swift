@@ -13,28 +13,28 @@ import JitsiCore
 public final class MediaSession: NSObject {
     private let factory: RTCPeerConnectionFactory
     private let localMedia: LocalMediaSource
-    /// Our full MUC JID, used as the Jingle `responder`.
-    private let responderJID: String
 
     private var peerConnection: RTCPeerConnection?
     private var offer: ParsedSessionDescription?
 
-    // Outbound signaling — the app wires these to the JitsiConference transport.
-    public var onSessionAccept: ((String) -> Void)?
+    // Outbound signaling — the ConferenceCall coordinator wires these to the
+    // JitsiConference. `onLocalAnswer` fires once with our parsed SDP answer; the
+    // signaling layer turns it into the Jingle `session-accept` (which owns the
+    // XMPP addressing). `onLocalCandidate` fires per trickled ICE candidate.
+    public var onLocalAnswer: ((LocalSDP) -> Void)?
     public var onLocalCandidate: ((ICECandidate, _ sdpMid: String?, _ mLineIndex: Int32) -> Void)?
     public var onIceStateChange: ((RTCIceConnectionState) -> Void)?
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
 
-    public init(factory: RTCPeerConnectionFactory, localMedia: LocalMediaSource, responderJID: String) {
+    public init(factory: RTCPeerConnectionFactory, localMedia: LocalMediaSource) {
         self.factory = factory
         self.localMedia = localMedia
-        self.responderJID = responderJID
         super.init()
     }
 
     /// Accept the JVB's offer: build the peer connection, set the remote
-    /// description, add local tracks, create + set the local answer, and emit the
-    /// Jingle `session-accept`.
+    /// description, add local tracks, create + set the local answer, and surface
+    /// it (`onLocalAnswer`) for the signaling layer to send as `session-accept`.
     public func accept(offer: ParsedSessionDescription, iceServers: [ICEServer]) {
         self.offer = offer
 
@@ -57,7 +57,7 @@ public final class MediaSession: NSObject {
         let remote = SessionDescriptionMapper.remoteOffer(from: offer)
         pc.setRemoteDescription(remote) { [weak self] error in
             guard error == nil else { return }
-            self?.createAndSendAnswer(offer: offer)
+            self?.createAndSendAnswer()
         }
     }
 
@@ -65,7 +65,7 @@ public final class MediaSession: NSObject {
     public func addRemoteCandidate(_ candidate: ICECandidate, sdpMid: String?, mLineIndex: Int32) {
         let rtc = SessionDescriptionMapper.rtcIceCandidate(from: candidate, sdpMid: sdpMid,
                                                            sdpMLineIndex: mLineIndex)
-        peerConnection?.add(rtc)
+        peerConnection?.add(rtc, completionHandler: { _ in })
     }
 
     public func close() {
@@ -73,17 +73,16 @@ public final class MediaSession: NSObject {
         peerConnection = nil
     }
 
-    private func createAndSendAnswer(offer: ParsedSessionDescription) {
+    private func createAndSendAnswer() {
         guard let pc = peerConnection else { return }
         let constraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
         pc.answer(for: constraints) { [weak self] sdp, error in
             guard let self, let sdp, error == nil else { return }
             pc.setLocalDescription(sdp) { error in
                 guard error == nil else { return }
-                let accept = SessionDescriptionMapper.sessionAccept(
-                    localAnswer: sdp, offer: offer, sid: offer.sid,
-                    initiator: offer.initiator ?? "", responder: self.responderJID)
-                self.onSessionAccept?(accept)
+                // Surface the parsed answer; the signaling layer owns the Jingle
+                // envelope + XMPP addressing (focus occupant, responder JID).
+                self.onLocalAnswer?(SDPAnswerParser.parse(sdp.sdp))
             }
         }
     }
