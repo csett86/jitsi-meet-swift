@@ -55,7 +55,8 @@ targets.append(
             "JitsiCore",
             .product(name: "WebRTC", package: "WebRTC"),
         ],
-        path: "Sources/JitsiMedia"
+        path: "Sources/JitsiMedia",
+        exclude: ["README.md"]
     )
 )
 #endif
