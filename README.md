@@ -2,6 +2,8 @@
 
 A native macOS Jitsi Meet client (SwiftUI/AppKit) — proof of concept.
 
+> **⚠️ WARNING:** This is a rough draft, implemented heavily by @claude
+
 WebRTC media via [`stasel/WebRTC`](https://github.com/stasel/WebRTC); custom
 signaling against Jitsi's XMPP / Jingle / Colibri stack. The single user-facing
 input is a full conference URL (default host `jitsi.luki.org`), from which every
