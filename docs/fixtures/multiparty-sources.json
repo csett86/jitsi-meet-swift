@@ -1,0 +1,22 @@
+[
+  {
+    "direction": "in",
+    "timestamp": 0.0,
+    "payload": "<iq type='set' from='multipartyroom@conference.jitsi.luki.org/focus' to='us@jitsi.luki.org/res' id='sa-a'><jingle xmlns='urn:xmpp:jingle:1' action='source-add' sid='9pupqtidrilf8' initiator='focus@auth.jitsi.luki.org/focus'><content creator='initiator' name='audio' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'><source ssrc='1001' name='a1b2c3d4-a0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/><parameter name='msid' value='a1b2c3d4-audio-0 a1b2c3d4-audio-0-1'/></source></description></content><content creator='initiator' name='video' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'><source ssrc='2001' name='a1b2c3d4-v0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/><parameter name='msid' value='a1b2c3d4-video-0 a1b2c3d4-video-0-1'/></source><source ssrc='2002' name='a1b2c3d4-v1' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/></source><source ssrc='2003' name='a1b2c3d4-v2' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/></source><ssrc-group semantics='SIM' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><source ssrc='2001'/><source ssrc='2002'/><source ssrc='2003'/></ssrc-group></description></content></jingle></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 0.5,
+    "payload": "<iq type='set' from='multipartyroom@conference.jitsi.luki.org/focus' to='us@jitsi.luki.org/res' id='sa-b'><jingle xmlns='urn:xmpp:jingle:1' action='source-add' sid='9pupqtidrilf8' initiator='focus@auth.jitsi.luki.org/focus'><content creator='initiator' name='audio' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='audio'><source ssrc='1003' name='e5f6a7b8-a0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/e5f6a7b8' xmlns='http://jitsi.org/jitmeet'/><parameter name='msid' value='e5f6a7b8-audio-0 e5f6a7b8-audio-0-1'/></source></description></content><content creator='initiator' name='video' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'><source ssrc='3001' name='e5f6a7b8-v0' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/e5f6a7b8' xmlns='http://jitsi.org/jitmeet'/><parameter name='msid' value='e5f6a7b8-video-0 e5f6a7b8-video-0-1'/></source></description></content></jingle></iq>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.0,
+    "payload": "<message from='multipartyroom@conference.jitsi.luki.org/focus' to='us@jitsi.luki.org/res'><json-message xmlns='http://jitsi.org/jitmeet'>{\"colibriClass\":\"DominantSpeakerEndpointChangeEvent\",\"dominantSpeakerEndpoint\":\"e5f6a7b8\"}</json-message></message>"
+  },
+  {
+    "direction": "in",
+    "timestamp": 1.5,
+    "payload": "<iq type='set' from='multipartyroom@conference.jitsi.luki.org/focus' to='us@jitsi.luki.org/res' id='sr-a'><jingle xmlns='urn:xmpp:jingle:1' action='source-remove' sid='9pupqtidrilf8' initiator='focus@auth.jitsi.luki.org/focus'><content creator='initiator' name='video' senders='both'><description xmlns='urn:xmpp:jingle:apps:rtp:1' media='video'><source ssrc='2001' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/></source><source ssrc='2002' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/></source><source ssrc='2003' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'><ssrc-info owner='multipartyroom@conference.jitsi.luki.org/a1b2c3d4' xmlns='http://jitsi.org/jitmeet'/></source></description></content></jingle></iq>"
+  }
+]

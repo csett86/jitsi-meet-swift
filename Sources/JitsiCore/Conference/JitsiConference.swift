@@ -25,6 +25,8 @@ public actor JitsiConference {
     private var boundJIDRaw: String?
     private var muc = MUCSession()
     private var capabilities: BackendCapabilities?
+    private var sources = SourceManager()
+    private var dominant = DominantSpeakerTracker()
 
     // Jingle session state (set when the focus sends `session-initiate`).
     /// The focus's MUC occupant JID — the `from` of `session-initiate`, and the
@@ -154,7 +156,12 @@ public actor JitsiConference {
             await handleIQ(iq)
         case .presence(let presence):
             handlePresence(presence)
-        case .message, .unknown:
+        case .message(let message):
+            // Some deployments carry endpoint messages (incl. dominant speaker)
+            // over XMPP; the modern path is the bridge data channel (see
+            // handleEndpointMessage).
+            if let json = message.jsonMessage { handleEndpointMessage(json) }
+        case .unknown:
             break
         }
     }
@@ -193,6 +200,7 @@ public actor JitsiConference {
             switch jingle.action {
             case "session-initiate":
                 focusOccupantJID = iq.from
+                sources.apply(jingle)
                 let offer = ParsedSessionDescription(jingle: jingle)
                 pendingOffer = offer
                 emit(.sessionDescription(offer))
@@ -203,9 +211,10 @@ public actor JitsiConference {
                     emit(.remoteCandidates(RemoteCandidates(mediaName: content.name,
                                                             candidates: candidates)))
                 }
+            case "source-add", "source-remove":
+                let changes = sources.apply(jingle)
+                if !changes.isEmpty { emit(.sourceChanged(changes)) }
             default:
-                // source-add / source-remove / session-terminate etc.: acked
-                // above; media-plane handling for these is not needed yet.
                 break
             }
         case .empty, .unknown:
@@ -213,9 +222,24 @@ public actor JitsiConference {
         }
     }
 
+    /// Feed an endpoint message from the WebRTC bridge data channel (JSON). The
+    /// data channel itself is `[MAC]` (no WebRTC on Linux); this is the seam that
+    /// keeps dominant-speaker state pure and testable.
+    public func handleEndpointMessage(_ json: String) {
+        if let endpoint = EndpointMessage.dominantSpeaker(fromJSON: json),
+           dominant.update(to: endpoint) {
+            emit(.dominantSpeaker(endpoint))
+        }
+    }
+
     private func handlePresence(_ presence: Presence) {
         if let change = muc.apply(presence) {
             emit(.roster(change))
+            // When a participant leaves, drop the media sources they owned.
+            if case let .left(participant) = change {
+                let removed = sources.removeEndpoint(participant.nick)
+                if !removed.isEmpty { emit(.sourceChanged(removed)) }
+            }
         }
         if presence.isSelfPresence {
             if presence.type == "unavailable" {

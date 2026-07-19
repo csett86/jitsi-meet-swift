@@ -145,3 +145,4 @@ offline.
 | ------------------------------- | ------------------------------------------------------ |
 | `lukijitsi-access-probe.json`   | Minimal `open` → `stream:features` (proves ANONYMOUS). |
 | `lukijitsi-join.json`           | Two-party join: features, bind, disco#info, TURN extdisco, conference-ready, MUC presences, **Jingle `session-initiate`**. |
+| `multiparty-sources.json`       | **Synthetic** `source-add` / `source-remove` for two endpoints + an XMPP dominant-speaker message. Constructed from the real source format (owner, msid, SIM group) because headless clients can't publish media to generate real ones — see the Phase 3 nuance above. |

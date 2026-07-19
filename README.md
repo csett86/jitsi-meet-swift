@@ -66,12 +66,18 @@ and never scheduled. Read **`docs/live-testing.md`** before running anything liv
   `ParsedSessionDescription`. Fully unit-tested offline over `FakeTransport`.
   The live Swift transport is `[MAC]` (Linux `URLSession` has no `wss` support);
   live behavior on Linux is validated via the Python drift check.
-- Phase 2 (in progress): the Jingle↔SDP mapping — `SDPBuilder` (offer),
-  `SDPAnswerParser`, `SDPCandidate`, `JingleBuilder` (`session-accept`) — lives
-  in `JitsiCore/SDP` and is **unit-tested on Linux** (52 core tests). The WebRTC
-  media layer (`PeerConnectionFactory`, `SessionDescriptionMapper`,
-  `LocalMediaSource`, `MediaSession`) is written in `JitsiMedia` and
-  compile-checked by the macOS CI, awaiting human media verification.
+- Phase 2: the Jingle↔SDP mapping — `SDPBuilder` (offer), `SDPAnswerParser`,
+  `SDPCandidate`, `JingleBuilder` (`session-accept`) — lives in `JitsiCore/SDP`
+  and is **unit-tested on Linux**. The WebRTC media layer
+  (`PeerConnectionFactory`, `SessionDescriptionMapper`, `LocalMediaSource`,
+  `MediaSession`) is in `JitsiMedia`; a real `RTCPeerConnection` accepts the
+  generated offer (verified on macOS).
+- Phase 3: multi-party state in `JitsiCore/Media` — `SourceManager`
+  (SSRC↔participant from `source-add`/`source-remove`), `QualityController`
+  (lastN + resolution + colibri receiver-constraints message), and
+  `DominantSpeakerTracker` — all pure and **unit-tested on Linux** (68 core
+  tests), wired into `JitsiConference`. The `[MAC]` bridge-channel WebSocket
+  (`JitsiMedia/BridgeChannel`) carries constraints/dominant-speaker.
 
 See `docs/findings.md`. Media (WebRTC) and UI (SwiftUI) are `[MAC]` — written by
 the agent, verified by a human (`docs/mac-signoff.md`).

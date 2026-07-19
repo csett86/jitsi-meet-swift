@@ -28,6 +28,10 @@ public final class ConferenceCall {
     /// Observability for the harness / app.
     public var onIceStateChange: ((RTCIceConnectionState) -> Void)?
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
+    /// The colibri bridge wss handshake completed.
+    public var onBridgeOpen: (@Sendable () -> Void)?
+    /// Dominant-speaker endpoint id, delivered over the colibri bridge channel.
+    public var onDominantSpeaker: (@Sendable (String) -> Void)?
 
     public init(conference: JitsiConference, factory: PeerConnectionFactory,
                 localMedia: LocalMediaSource) {
@@ -60,6 +64,12 @@ public final class ConferenceCall {
 
     public func close() { session?.close() }
 
+    /// Push receiver video constraints (lastN / selected / resolution) to the
+    /// bridge — the output of `JitsiCore.QualityController`. No-op before a call.
+    public func setReceiverConstraints(_ constraints: ReceiverConstraints) {
+        session?.setReceiverConstraints(constraints)
+    }
+
     private func startSession(offer: ParsedSessionDescription) {
         let session = MediaSession(factory: factory.factory, localMedia: localMedia)
         self.session = session
@@ -86,6 +96,12 @@ public final class ConferenceCall {
         }
         session.onIceStateChange = { [weak self] state in self?.onIceStateChange?(state) }
         session.onRemoteTrack = { [weak self] track in self?.onRemoteTrack?(track) }
+        // Forward the @Sendable bridge handlers directly (no self capture) — these
+        // must be set before accept(), which opens the bridge channel.
+        let bridgeOpen = onBridgeOpen
+        session.onBridgeOpen = { bridgeOpen?() }
+        let speaker = onDominantSpeaker
+        session.onDominantSpeaker = { endpoint in speaker?(endpoint) }
 
         session.accept(offer: offer, iceServers: iceServers)
     }

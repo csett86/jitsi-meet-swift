@@ -25,6 +25,10 @@ public enum ConferenceEvent: Equatable, Sendable {
     /// Trickle ICE candidates the focus sent us in a `transport-info`, per media
     /// section. The media layer feeds these into the peer connection.
     case remoteCandidates(RemoteCandidates)
+    /// Remote media sources added/removed (source-add / source-remove).
+    case sourceChanged([SourceChange])
+    /// The dominant speaker changed to this endpoint id.
+    case dominantSpeaker(String)
 }
 
 /// Trickle ICE candidates for one media section, parsed from an inbound Jingle
