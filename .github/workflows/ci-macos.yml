@@ -23,7 +23,7 @@ jobs:
       - name: Build (JitsiCore + JitsiMedia)
         run: swift build
 
-      - name: Test JitsiCore
+      - name: Test (JitsiCore + JitsiMedia)
         run: swift test
 
       # TODO (Phase 4): xcodebuild the JitsiApp scheme once the Xcode project exists.
