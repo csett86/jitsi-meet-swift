@@ -85,7 +85,7 @@ let package = Package(
     dependencies: {
         #if os(macOS)
         return [
-            .package(url: "https://github.com/stasel/WebRTC.git", from: "125.0.0"),
+            .package(url: "https://github.com/stasel/WebRTC.git", from: "150.0.0"),
         ]
         #else
         return []
