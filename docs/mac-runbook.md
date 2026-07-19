@@ -83,8 +83,19 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    actual capture + rendering needs the Phase 4 app + a human._
 
 ### Phase 3 — multi-party stability
-4–5 participants; verify SSRC↔participant mapping, lastN/quality decisions, and
-dominant-speaker highlight. Use a **private instance** for sustained load.
+The multi-party logic is pure and unit-tested on Linux (`SourceManager`,
+`QualityController`, `DominantSpeakerTracker`, wired into `JitsiConference`). What
+a human must verify on macOS:
+
+1. `JitsiMedia/BridgeChannel` connects to the colibri `<web-socket>` URL from the
+   `session-initiate` (Apple `URLSession` wss — Linux can't), and inbound
+   endpoint messages surface the dominant speaker.
+2. `MediaSession.setReceiverConstraints(_:)` (from `QualityController`) is
+   accepted by the bridge and actually changes which/what resolution videos
+   arrive.
+3. 4–5 participant call: SSRC↔participant mapping is correct, lastN/quality
+   decisions behave, dominant-speaker highlight tracks. Use a **private
+   instance** for sustained load (do not strain jitsi.luki.org).
 
 ### Phase 4 — app loop
 Launch → paste conference URL → join → participant grid → mute/camera → leave,

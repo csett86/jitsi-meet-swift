@@ -135,6 +135,35 @@ final class JitsiConferenceTests: XCTestCase {
 
     // MARK: - Outbound handshake
 
+    // MARK: - Multi-party (Phase 3)
+
+    func testMultiPartySourceAndDominantSpeakerEvents() async throws {
+        let run = try await runFixture("multiparty-sources.json")
+
+        // Collect every source change the conference emitted.
+        var added: [EndpointSource] = []
+        var removed: [EndpointSource] = []
+        for case let .sourceChanged(changes) in run.events {
+            for change in changes {
+                switch change {
+                case .added(let s): added.append(s)
+                case .removed(let s): removed.append(s)
+                }
+            }
+        }
+        // Two endpoints published sources; A's three video SSRCs were removed.
+        XCTAssertEqual(Set(added.map(\.endpointID)), ["a1b2c3d4", "e5f6a7b8"])
+        XCTAssertTrue(added.contains { $0.ssrc == "2001" && $0.media == "video" })
+        XCTAssertEqual(Set(removed.map(\.ssrc)), ["2001", "2002", "2003"])
+
+        // The XMPP-path dominant-speaker message was surfaced.
+        let dominant = run.events.compactMap { event -> String? in
+            if case let .dominantSpeaker(ep) = event { return ep }
+            return nil
+        }
+        XCTAssertEqual(dominant, ["e5f6a7b8"])
+    }
+
     func testSendsExpectedHandshakeStanzas() async throws {
         let run = try await runFixture()
         let joined = run.sent.joined(separator: "\n")

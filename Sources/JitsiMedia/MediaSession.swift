@@ -16,6 +16,7 @@ public final class MediaSession: NSObject {
 
     private var peerConnection: RTCPeerConnection?
     private var offer: ParsedSessionDescription?
+    private var bridge: BridgeChannel?
 
     // Outbound signaling — the ConferenceCall coordinator wires these to the
     // JitsiConference. `onLocalAnswer` fires once with our parsed SDP answer; the
@@ -25,6 +26,8 @@ public final class MediaSession: NSObject {
     public var onLocalCandidate: ((ICECandidate, _ sdpMid: String?, _ mLineIndex: Int32) -> Void)?
     public var onIceStateChange: ((RTCIceConnectionState) -> Void)?
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
+    /// Dominant-speaker endpoint id, delivered over the colibri bridge channel.
+    public var onDominantSpeaker: (@Sendable (String) -> Void)?
 
     public init(factory: RTCPeerConnectionFactory, localMedia: LocalMediaSource) {
         self.factory = factory
@@ -59,6 +62,24 @@ public final class MediaSession: NSObject {
             guard error == nil else { return }
             self?.createAndSendAnswer()
         }
+
+        // Open the colibri bridge channel (dominant speaker in, receiver
+        // constraints out) if the offer advertised one.
+        if let wsString = offer.bridgeWebSocketURL, let url = URL(string: wsString) {
+            let channel = BridgeChannel(url: url)
+            bridge = channel
+            let handler = onDominantSpeaker
+            Task {
+                if let handler { await channel.setDominantSpeakerHandler(handler) }
+                await channel.connect()
+            }
+        }
+    }
+
+    /// Update receiver video constraints (lastN, selected endpoints, resolution)
+    /// on the bridge — the output of `JitsiCore.QualityController`.
+    public func setReceiverConstraints(_ constraints: ReceiverConstraints) {
+        Task { try? await bridge?.send(constraints) }
     }
 
     /// Feed a remote ICE candidate (from a Jingle `transport-info`).
@@ -71,6 +92,9 @@ public final class MediaSession: NSObject {
     public func close() {
         peerConnection?.close()
         peerConnection = nil
+        let channel = bridge
+        bridge = nil
+        Task { await channel?.close() }
     }
 
     private func createAndSendAnswer() {

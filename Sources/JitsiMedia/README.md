@@ -19,6 +19,9 @@ Contents (Phase 2 — implemented, awaiting Mac verification):
 - `MediaSession.swift` — ties a `ParsedSessionDescription` to a live
   `RTCPeerConnection` (set remote offer, add local media, create/send answer,
   trickle ICE), exposing outbound signaling via callbacks.
+- `BridgeChannel.swift` (Phase 3) — the colibri `<web-socket>` from the
+  `session-initiate`; sends `QualityController` receiver constraints and surfaces
+  dominant-speaker events. Wired into `MediaSession`.
 
 The heavy lifting (Jingle↔SDP, ICE line formatting) lives in
 `JitsiCore/SDP/` — pure Swift, unit-tested on Linux. This target is only the
