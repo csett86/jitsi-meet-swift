@@ -1,10 +1,13 @@
 name: macOS build (scaffolding)
 
-# Manual-only scaffolding for whoever has macOS CI minutes. This is NEVER a gate
-# for the Linux-first workflow — the Apple-only targets (JitsiMedia, JitsiApp)
-# and the stasel/WebRTC dependency only exist when Package.swift is evaluated on
-# macOS. Wire up the full xcodebuild of the app here as Phase 2+/4 land.
+# Runs on every PR (and on demand) so the Apple-only targets are exercised —
+# the stasel/WebRTC link and JitsiMedia/JitsiApp compile only happen when
+# Package.swift is evaluated on macOS. It reports status but is NOT the required
+# merge gate (that stays the Linux `CI` workflow); make it required via branch
+# protection only if you choose to. Wire up the full xcodebuild of the app here
+# as Phase 2+/4 land.
 on:
+  pull_request:
   workflow_dispatch:
 
 jobs:

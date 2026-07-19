@@ -17,6 +17,7 @@ scheduled.
 | `access_probe.py`   | ONE short connection: `open` → `stream:features`. Proves SASL ANONYMOUS. No room join. |
 | `capture_join.py`   | Two-client join in a dedicated room; records client A's frames including the Jingle `session-initiate`. ~22s. |
 | `make_fixtures.py`  | Redacts ephemeral TURN credentials from a raw capture into a committed fixture. |
+| `drift_check.py`    | Single short client; compares live handshake markers (SASL, disco components, conference-ready, TURN) to the committed fixture. Exits non-zero on drift. |
 
 ## Reproduce the committed fixtures
 

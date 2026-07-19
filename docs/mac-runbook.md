@@ -32,11 +32,22 @@ XMPP-WebSocket frames in DevTools, and confirm they match the agent's headless
 missing). Courtesy rules in `docs/live-testing.md` still apply.
 
 ### Phase 1 — macOS URLSession confirmation
-`URLSessionWebSocketTask` differs between Apple Foundation and swift-corelibs
-(Linux). After `URLSessionStanzaTransport` lands, confirm on macOS that it
-connects to `wss://jitsi.luki.org/xmpp-websocket`, completes SASL ANONYMOUS +
-bind + MUC join, and reaches `session-initiate` — matching the Linux
-`[CLOUD-LIVE]` run.
+`URLSessionStanzaTransport` has landed. Confirmed on Linux: swift-corelibs
+`URLSessionWebSocketTask` cannot open `wss://` (fails `-1002`
+`NSURLErrorUnsupportedURL`), so the Swift live tests **skip** there and live
+protocol validation runs via the Python drift check. **macOS is the primary
+validation of the Swift transport.** Run:
+
+```sh
+JITSI_LIVE_TESTS=1 JITSI_TEST_URL="https://jitsi.luki.org/<dedicated-room>" \
+  swift test --filter JitsiLiveTests
+```
+
+Confirm on macOS that `testLiveConnectAndJoin` connects to
+`wss://jitsi.luki.org/xmpp-websocket`, completes SASL ANONYMOUS + bind + MUC
+join (reaching `.joined`, with capabilities + ICE servers), and that
+`testLiveReachesSessionInitiate` (two clients) reaches `session-initiate` — i.e.
+Apple's `URLSession` behaves as the Python capture did on Linux.
 
 ### Phase 2 — media smoke test
 Two-participant call (this app vs. a browser tab in the same dedicated room):
