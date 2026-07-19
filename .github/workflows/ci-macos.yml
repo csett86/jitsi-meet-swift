@@ -24,7 +24,7 @@ jobs:
         run: swift build
 
       - name: Test JitsiCore
-        run: swift test --filter JitsiCoreTests
+        run: swift test
 
       # TODO (Phase 4): xcodebuild the JitsiApp scheme once the Xcode project exists.
       # - name: Build the app
