@@ -81,6 +81,18 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    in the same dedicated room): camera/mic RTP both directions, remote video on
    screen. _Still pending — the headless test above proves connectivity, but
    actual capture + rendering needs the Phase 4 app + a human._
+4. **❌ Known issue — ICE does not survive a sustained call.** Reproduced twice
+   live: `connected` → `disconnected` → `failed` at 60–95s in, with zero
+   XMPP/Jingle traffic around the drop (ruled out via a combined XMPP+ICE tee —
+   it's not a missed renegotiation). `MediaSession`/`ConferenceCall` never call
+   `RTCPeerConnection.restartIce()` and there's no Jingle ICE-restart
+   re-signaling, so once it fails the call is permanently dead. See
+   docs/mac-signoff.md (Phase 2/3 row) for the full trace. **Root cause not yet
+   isolated** — next diagnostic step is re-running with macOS App Nap/background
+   throttling explicitly disabled for the process to rule that out before
+   assuming a real network-path issue. **No fix implemented yet** — needs
+   `restartIce()` plus a Jingle-level ICE-restart flow (new `transport-info`
+   carrying fresh ufrag/pwd) for real recovery.
 
 ### Phase 3 — multi-party stability
 The multi-party logic is pure and unit-tested on Linux (`SourceManager`,
