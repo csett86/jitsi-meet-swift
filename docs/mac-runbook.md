@@ -50,9 +50,18 @@ join (reaching `.joined`, with capabilities + ICE servers), and that
 Apple's `URLSession` behaves as the Python capture did on Linux.
 
 ### Phase 2 — media smoke test
-Two-participant call (this app vs. a browser tab in the same dedicated room):
-audio + video both directions. Watch `SessionDescriptionMapper` closely — it is
-the riskiest integration point.
+The media layer is implemented (`PeerConnectionFactory`, `SessionDescriptionMapper`,
+`LocalMediaSource`, `MediaSession`). The Jingle↔SDP mapping is unit-tested on
+Linux in `JitsiCore/SDP`; what a human must verify on macOS:
+
+1. The SDP that `SDPBuilder.offer` produces is **accepted** by a real
+   `RTCPeerConnection.setRemoteDescription` (the riskiest point — the mid values
+   and fmtp lines are the most likely to need adjustment).
+2. `createAnswer` → `SessionDescriptionMapper.sessionAccept` produces a Jingle
+   `session-accept` the JVB accepts (optionally check at the signaling layer
+   first, `[CLOUD-LIVE]`, before full media).
+3. Two-participant call (this app vs. a browser tab in the same dedicated room):
+   audio + video both directions, ICE connects (watch `onIceStateChange`).
 
 ### Phase 3 — multi-party stability
 4–5 participants; verify SSRC↔participant mapping, lastN/quality decisions, and
