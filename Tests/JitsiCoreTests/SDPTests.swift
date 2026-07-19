@@ -83,6 +83,37 @@ final class SDPBuilderTests: XCTestCase {
         let sdp = SDPBuilder.offer(from: try fixtureSessionDescription())
         XCTAssertTrue(sdp.contains("a=rtpmap:126 telephone-event/8000"))
     }
+
+    /// Once a real participant is present, the JVB's `session-initiate` carries
+    /// several sources in one media section (its mixed source plus every other
+    /// participant's). Unified Plan rejects >1 track (a=ssrc set) per m-line
+    /// ("Media section has more than one track specified with a=ssrc lines"), so
+    /// the builder must collapse to a single source per section.
+    func testOfferCollapsesMultipleSourcesToOnePerSection() {
+        let media = MediaDescription(
+            kind: "video",
+            payloadTypes: [PayloadType(id: 100, name: "VP8", clockrate: 90000, channels: nil,
+                                       parameters: [:], rtcpFeedback: [])],
+            headerExtensions: [],
+            sources: [
+                Source(ssrc: "1111", name: "jvb-v0", owner: "jvb", parameters: [:]),
+                Source(ssrc: "2222", name: "endpointA", owner: "a", parameters: [:]),
+                Source(ssrc: "3333", name: "endpointB", owner: "b", parameters: [:]),
+            ],
+            sourceGroups: [SourceGroup(semantics: "SIM", ssrcs: ["1111", "2222", "3333"])],
+            transport: nil)
+        let sdp = SDPBuilder.offer(from: ParsedSessionDescription(
+            sid: "s", initiator: nil, media: [media], bridgeWebSocketURL: nil))
+
+        let ssrcs = Set(sdp.components(separatedBy: "\r\n")
+            .filter { $0.hasPrefix("a=ssrc:") }
+            .map { String($0.split(separator: " ")[0]) })
+        XCTAssertEqual(ssrcs, ["a=ssrc:1111"], "only the first source's ssrc survives")
+        XCTAssertFalse(sdp.contains("a=ssrc:2222"))
+        XCTAssertFalse(sdp.contains("a=ssrc:3333"))
+        // No dangling ssrc-group referencing dropped ssrcs.
+        XCTAssertFalse(sdp.contains("a=ssrc-group:"))
+    }
 }
 
 final class SDPAnswerParserTests: XCTestCase {

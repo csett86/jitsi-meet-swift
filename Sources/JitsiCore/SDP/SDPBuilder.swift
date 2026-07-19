@@ -57,10 +57,15 @@ public enum SDPBuilder {
         for ext in media.headerExtensions {
             lines.append("a=extmap:\(ext.id) \(ext.uri)")
         }
-        for group in media.sourceGroups {
-            lines.append("a=ssrc-group:\(group.semantics) \(group.ssrcs.joined(separator: " "))")
-        }
-        for source in media.sources {
+        // Unified Plan permits only one track (one set of a=ssrc lines) per
+        // m-section. The JVB's session-initiate can carry several sources per
+        // section — its own mixed source plus every other participant's — which
+        // WebRTC rejects ("more than one track specified with a=ssrc lines").
+        // Collapse to the first source so setRemoteDescription accepts the offer;
+        // this is enough to negotiate transport + send our media. Receiving each
+        // remote participant as its own m-line (via source-add → new
+        // transceivers) is a separate, later step.
+        if let source = media.sources.first {
             lines.append(contentsOf: sourceLines(source))
         }
         return lines
