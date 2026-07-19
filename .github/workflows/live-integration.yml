@@ -21,16 +21,13 @@ permissions:
 jobs:
   live:
     name: Live signaling (non-blocking)
-    runs-on: ubuntu-latest
-    container: swift:6.0.3-noble
+    runs-on: macos-latest
     # Never fail the overall run — this depends on a third-party server we do
     # not control and must not treat as a gate.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      # Swift live tests. On Linux these skip (swift-corelibs URLSession has no
-      # wss WebSocket support) — the Swift transport is exercised live on macOS.
       - name: Live signaling tests (Swift)
         env:
           JITSI_LIVE_TESTS: "1"

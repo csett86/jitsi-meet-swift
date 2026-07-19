@@ -1,4 +1,4 @@
-name: macOS build (scaffolding)
+name: macOS
 
 # Runs on every PR (and on demand) so the Apple-only targets are exercised —
 # the stasel/WebRTC link and JitsiMedia/JitsiApp compile only happen when
@@ -7,7 +7,10 @@ name: macOS build (scaffolding)
 # protection only if you choose to. Wire up the full xcodebuild of the app here
 # as Phase 2+/4 land.
 on:
+  push:
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -23,7 +26,7 @@ jobs:
       - name: Build (JitsiCore + JitsiMedia)
         run: swift build
 
-      - name: Test JitsiCore
+      - name: Test (JitsiCore + JitsiMedia)
         run: swift test
 
       # TODO (Phase 4): xcodebuild the JitsiApp scheme once the Xcode project exists.
