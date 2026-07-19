@@ -21,8 +21,19 @@ public actor JitsiConference {
     private var authenticated = false
     private var joined = false
     private var boundJID: JID?
+    /// Our full JID exactly as the server bound it (the Jingle `responder`).
+    private var boundJIDRaw: String?
     private var muc = MUCSession()
     private var capabilities: BackendCapabilities?
+
+    // Jingle session state (set when the focus sends `session-initiate`).
+    /// The focus's MUC occupant JID — the `from` of `session-initiate`, and the
+    /// address our `session-accept` / `transport-info` replies must go to.
+    private var focusOccupantJID: String?
+    private var pendingOffer: ParsedSessionDescription?
+    /// Monotonic counter for the `id` attribute XMPP requires on every IQ we send.
+    private var iqCounter = 0
+    private func nextIQID() -> String { iqCounter += 1; return "jingle-\(iqCounter)" }
 
     /// Features we advertise when Jicofo probes our `disco#info` — enough for it
     /// to treat us as a Jingle/RTP media endpoint and send `session-initiate`.
@@ -91,6 +102,37 @@ public actor JitsiConference {
         await transport.disconnect()
     }
 
+    // MARK: - Media send-back (Jingle answer + trickle)
+
+    /// Our full bound JID (the Jingle `responder`), available once bound.
+    public var localJID: String? { boundJIDRaw }
+
+    /// Send the Jingle `session-accept` for the pending offer, carrying our
+    /// local SDP answer. No-op until a `session-initiate` has been received and
+    /// we are bound — the addressing (focus occupant + our JID) comes from there.
+    public func acceptSession(local: LocalSDP) async {
+        guard let offer = pendingOffer, let to = focusOccupantJID,
+              let responder = boundJIDRaw else { return }
+        let xml = JingleBuilder.sessionAccept(
+            sid: offer.sid, to: to, id: nextIQID(),
+            initiator: offer.initiator ?? to, responder: responder,
+            offer: offer, local: local)
+        try? await transport.send(xml)
+    }
+
+    /// Trickle locally-gathered ICE candidates for one media section to the
+    /// focus as a Jingle `transport-info`.
+    public func sendLocalCandidates(mediaName: String, ufrag: String?, pwd: String?,
+                                    candidates: [ICECandidate]) async {
+        guard let offer = pendingOffer, let to = focusOccupantJID,
+              let responder = boundJIDRaw, !candidates.isEmpty else { return }
+        let xml = JingleBuilder.transportInfo(
+            sid: offer.sid, to: to, id: nextIQID(),
+            initiator: offer.initiator ?? to, responder: responder,
+            mediaName: mediaName, ufrag: ufrag, pwd: pwd, candidates: candidates)
+        try? await transport.send(xml)
+    }
+
     // MARK: - Stanza handling
 
     private func handle(_ stanza: Stanza) async {
@@ -120,6 +162,7 @@ public actor JitsiConference {
     private func handleIQ(_ iq: IQ) async {
         switch iq.payload {
         case .bind(let jid):
+            boundJIDRaw = jid
             boundJID = jid.flatMap(JID.init)
             // Post-bind: discover the deployment, then ask Jicofo to allocate.
             try? await transport.send(discoInfoRequest())
@@ -143,11 +186,27 @@ public actor JitsiConference {
                 try? await transport.send(joinPresence())
             }
         case .jingle(let jingle):
-            if jingle.action == "session-initiate" {
-                if let id = iq.id, let from = iq.from {
-                    try? await transport.send(iqResult(to: from, id: id))
+            // Ack every Jingle IQ set (XMPP requires a reply to type='set').
+            if iq.type == "set", let id = iq.id, let from = iq.from {
+                try? await transport.send(iqResult(to: from, id: id))
+            }
+            switch jingle.action {
+            case "session-initiate":
+                focusOccupantJID = iq.from
+                let offer = ParsedSessionDescription(jingle: jingle)
+                pendingOffer = offer
+                emit(.sessionDescription(offer))
+            case "transport-info":
+                for content in jingle.contents {
+                    let candidates = content.transport?.candidates ?? []
+                    guard !candidates.isEmpty else { continue }
+                    emit(.remoteCandidates(RemoteCandidates(mediaName: content.name,
+                                                            candidates: candidates)))
                 }
-                emit(.sessionDescription(ParsedSessionDescription(jingle: jingle)))
+            default:
+                // source-add / source-remove / session-terminate etc.: acked
+                // above; media-plane handling for these is not needed yet.
+                break
             }
         case .empty, .unknown:
             break

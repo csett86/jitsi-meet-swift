@@ -76,22 +76,31 @@ final class SDPAcceptanceTests: XCTestCase {
 
     /// Runbook Phase 2, item 2 (local half) — drive the actual shipping
     /// `MediaSession.accept()` code path (set remote → add tracks → createAnswer →
-    /// setLocal → build session-accept) and confirm the emitted Jingle round-trips.
-    func testMediaSessionProducesRoundTrippableSessionAccept() throws {
+    /// setLocal), then build the `session-accept` the way `JitsiConference` does
+    /// and confirm it round-trips with our real ICE/DTLS + SSRCs.
+    func testMediaSessionAnswerBuildsRoundTrippableSessionAccept() throws {
         let offer = try fixtureOffer()
         let factory = PeerConnectionFactory()
         let local = LocalMediaSource(factory: factory.factory)   // tracks only; no startCapture()
-        let session = MediaSession(factory: factory.factory, localMedia: local,
-                                   responderJID: "me@jitsi.luki.org/res")
+        let session = MediaSession(factory: factory.factory, localMedia: local)
 
-        let exp = expectation(description: "onSessionAccept")
-        var acceptXML: String?
-        session.onSessionAccept = { xml in acceptXML = xml; exp.fulfill() }
+        let exp = expectation(description: "onLocalAnswer")
+        var answer: LocalSDP?
+        session.onLocalAnswer = { sdp in answer = sdp; exp.fulfill() }
         session.accept(offer: offer, iceServers: [])
         wait(for: [exp], timeout: 15)
         session.close()
 
-        let xml = try XCTUnwrap(acceptXML, "MediaSession.accept did not emit a session-accept")
+        let localSDP = try XCTUnwrap(answer, "MediaSession.accept did not surface a local answer")
+        // Our real answer describes both bundled media with DTLS fingerprints.
+        XCTAssertEqual(Set(localSDP.media.map(\.kind)), ["audio", "video"])
+        XCTAssertNotNil(localSDP.media.first?.fingerprint, "answer should carry a DTLS fingerprint")
+
+        // Build the accept exactly as JitsiConference.acceptSession would.
+        let xml = JingleBuilder.sessionAccept(
+            sid: offer.sid, to: "room@conference.jitsi.luki.org/focus", id: "iq-1",
+            initiator: offer.initiator ?? "", responder: "me@jitsi.luki.org/res",
+            offer: offer, local: localSDP)
         let stanza = StanzaParser.parse(xml)
         guard case let .iq(iq)? = stanza, case let .jingle(j) = iq.payload else {
             return XCTFail("session-accept did not round-trip through the parser")
