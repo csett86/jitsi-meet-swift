@@ -20,6 +20,9 @@ swift test  --filter JitsiCoreTests
 
 # Apple-only media library (macOS only — pulls stasel/WebRTC):
 swift build            # macOS: builds JitsiCore + JitsiMedia
+
+# Phase 2 media SDP check against a real RTCPeerConnection (macOS only, offline):
+swift test --filter JitsiMediaTests
 # The SwiftUI app (JitsiApp) is built from Xcode; see Phase 4.
 ```
 
@@ -50,9 +53,23 @@ join (reaching `.joined`, with capabilities + ICE servers), and that
 Apple's `URLSession` behaves as the Python capture did on Linux.
 
 ### Phase 2 — media smoke test
-Two-participant call (this app vs. a browser tab in the same dedicated room):
-audio + video both directions. Watch `SessionDescriptionMapper` closely — it is
-the riskiest integration point.
+The media layer is implemented (`PeerConnectionFactory`, `SessionDescriptionMapper`,
+`LocalMediaSource`, `MediaSession`). The Jingle↔SDP mapping is unit-tested on
+Linux in `JitsiCore/SDP`; what a human must verify on macOS:
+
+1. The SDP that `SDPBuilder.offer` produces is **accepted** by a real
+   `RTCPeerConnection.setRemoteDescription` (the riskiest point — the mid values
+   and fmtp lines are the most likely to need adjustment). **✅ now covered by an
+   automated offline test** — `swift test --filter JitsiMediaTests` feeds the
+   fixture-derived offer to a real `RTCPeerConnection` on Apple hardware (no live
+   server). That same target also drives the shipping `MediaSession.accept()`
+   path and confirms the emitted `session-accept` round-trips.
+2. `createAnswer` → `SessionDescriptionMapper.sessionAccept` produces a Jingle
+   `session-accept` the JVB accepts (optionally check at the signaling layer
+   first, `[CLOUD-LIVE]`, before full media). _Local half automated (see item 1);
+   JVB acceptance still needs a live call._
+3. Two-participant call (this app vs. a browser tab in the same dedicated room):
+   audio + video both directions, ICE connects (watch `onIceStateChange`).
 
 ### Phase 3 — multi-party stability
 4–5 participants; verify SSRC↔participant mapping, lastN/quality decisions, and

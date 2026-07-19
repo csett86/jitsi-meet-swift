@@ -59,6 +59,21 @@ targets.append(
         exclude: ["README.md"]
     )
 )
+
+// [MAC] Phase 2 media verification against a real RTCPeerConnection. macOS-only
+// (links WebRTC), needs no live server or camera/mic — see docs/mac-runbook.md.
+// Not a CI gate on Linux (the manifest never declares it there).
+targets.append(
+    .testTarget(
+        name: "JitsiMediaTests",
+        dependencies: [
+            "JitsiMedia",
+            "JitsiCore",
+            .product(name: "WebRTC", package: "WebRTC"),
+        ],
+        path: "Tests/JitsiMediaTests"
+    )
+)
 #endif
 
 let package = Package(

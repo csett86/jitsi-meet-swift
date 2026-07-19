@@ -43,13 +43,14 @@ public struct MediaDescription: Equatable, Sendable {
     public var sources: [Source]
     public var sourceGroups: [SourceGroup]
     public var transport: JingleTransport?
+    public var rtcpMux: Bool
 
     public init(kind: String, payloadTypes: [PayloadType],
                 headerExtensions: [RTPHeaderExtension], sources: [Source],
-                sourceGroups: [SourceGroup], transport: JingleTransport?) {
+                sourceGroups: [SourceGroup], transport: JingleTransport?, rtcpMux: Bool = true) {
         self.kind = kind; self.payloadTypes = payloadTypes
         self.headerExtensions = headerExtensions; self.sources = sources
-        self.sourceGroups = sourceGroups; self.transport = transport
+        self.sourceGroups = sourceGroups; self.transport = transport; self.rtcpMux = rtcpMux
     }
 
     public init(_ content: JingleContent) {
@@ -59,6 +60,7 @@ public struct MediaDescription: Equatable, Sendable {
         self.sources = content.sources
         self.sourceGroups = content.sourceGroups
         self.transport = content.transport
+        self.rtcpMux = content.rtcpMux
     }
 
     public var codecNames: [String] { payloadTypes.compactMap(\.name) }
