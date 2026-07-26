@@ -117,6 +117,8 @@ public enum StanzaParser {
             return .discoInfo(parseDiscoInfo(child))
         case "services" where ns.contains("extdisco"):
             return .externalServices(child.children("service").map(parseService))
+        case "ping" where ns == "urn:xmpp:ping":
+            return .ping
         case "conference":
             return .conference(parseConference(child))
         case "jingle":

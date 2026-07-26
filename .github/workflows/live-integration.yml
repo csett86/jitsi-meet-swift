@@ -13,6 +13,19 @@ on:
         description: "Full conference URL (dedicated room, per docs/live-testing.md)"
         required: false
         default: "https://jitsi.luki.org/jitsimeetswiftcidispatch"
+      sustained_call:
+        description: "Also run the sustained-call diagnostic (2 clients, holds a real call)"
+        type: boolean
+        required: false
+        default: false
+      call_seconds:
+        description: "How long the sustained call holds (seconds)"
+        required: false
+        default: "150"
+      keepalive:
+        description: "XMPP keepalive: 1 = on (default), 0 = off (reproduce the pre-fix drop)"
+        required: false
+        default: "1"
 
 permissions:
   contents: read
@@ -33,6 +46,21 @@ jobs:
           JITSI_LIVE_TESTS: "1"
           JITSI_TEST_URL: ${{ inputs.test_url }}
         run: swift test --filter JitsiLiveTests
+
+      # Sustained-call diagnostic for the "call dies after 60–95s" issue. Opt-in
+      # because it holds a real 2-party call for a couple of minutes. Prints a
+      # single timestamped timeline (XMPP / colibri bridge / ICE) so whichever
+      # channel dies first is visible. Running it here also discriminates an
+      # environment-specific fault from a reproducible one: a GitHub macOS runner
+      # is a different machine, network and power-management regime.
+      - name: Sustained call diagnostic
+        if: ${{ inputs.sustained_call }}
+        env:
+          JITSI_LIVE_TESTS: "1"
+          JITSI_TEST_URL: ${{ inputs.test_url }}
+          JITSI_CALL_SECONDS: ${{ inputs.call_seconds }}
+          JITSI_KEEPALIVE: ${{ inputs.keepalive }}
+        run: swift test --filter testLiveSustainedCallSurvives
 
       # Drift check (Python) — a single short client that compares the live
       # server's handshake markers to the committed fixture. Fails this step

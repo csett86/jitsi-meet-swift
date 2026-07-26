@@ -30,6 +30,9 @@ public final class ConferenceCall {
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
     /// The colibri bridge wss handshake completed.
     public var onBridgeOpen: (@Sendable () -> Void)?
+    /// The colibri bridge socket closed (close code). Load-bearing for call
+    /// survival — see `MediaSession.onBridgeClose`.
+    public var onBridgeClose: (@Sendable (Int) -> Void)?
     /// Dominant-speaker endpoint id, delivered over the colibri bridge channel.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
 
@@ -100,6 +103,8 @@ public final class ConferenceCall {
         // must be set before accept(), which opens the bridge channel.
         let bridgeOpen = onBridgeOpen
         session.onBridgeOpen = { bridgeOpen?() }
+        let bridgeClose = onBridgeClose
+        session.onBridgeClose = { code in bridgeClose?(code) }
         let speaker = onDominantSpeaker
         session.onDominantSpeaker = { endpoint in speaker?(endpoint) }
 

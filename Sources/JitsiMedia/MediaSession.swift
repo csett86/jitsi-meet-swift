@@ -30,6 +30,10 @@ public final class MediaSession: NSObject {
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
     /// Fires once the colibri bridge wss handshake completes.
     public var onBridgeOpen: (@Sendable () -> Void)?
+    /// Fires when the colibri bridge socket closes, with the close code. A close
+    /// here is load-bearing: the JVB treats the bridge channel as the endpoint's
+    /// message transport, so losing it can take the media session with it.
+    public var onBridgeClose: (@Sendable (Int) -> Void)?
 
     public init(factory: RTCPeerConnectionFactory, localMedia: LocalMediaSource) {
         self.factory = factory
@@ -72,9 +76,11 @@ public final class MediaSession: NSObject {
             bridge = channel
             let speakerHandler = onDominantSpeaker
             let openHandler = onBridgeOpen
+            let closeHandler = onBridgeClose
             Task {
                 if let speakerHandler { await channel.setDominantSpeakerHandler(speakerHandler) }
                 if let openHandler { await channel.setOpenHandler(openHandler) }
+                if let closeHandler { await channel.setCloseHandler(closeHandler) }
                 await channel.connect()
             }
         }
