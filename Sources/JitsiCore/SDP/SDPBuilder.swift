@@ -17,8 +17,7 @@ public enum SDPBuilder {
         lines.append("o=- \(sessionID) 2 IN IP4 127.0.0.1")
         lines.append("s=-")
         lines.append("t=0 0")
-        let mids = description.media.map(\.kind)
-        lines.append("a=group:BUNDLE \(mids.joined(separator: " "))")
+        lines.append("a=group:BUNDLE \(description.media.map(\.kind).joined(separator: " "))")
         lines.append("a=msid-semantic: WMS *")
 
         for media in description.media {
@@ -36,15 +35,7 @@ public enum SDPBuilder {
         lines.append("a=rtcp:9 IN IP4 0.0.0.0")
 
         if let transport = media.transport {
-            if let ufrag = transport.ufrag { lines.append("a=ice-ufrag:\(ufrag)") }
-            if let pwd = transport.pwd { lines.append("a=ice-pwd:\(pwd)") }
-            if let fp = transport.fingerprint {
-                lines.append("a=fingerprint:\(fp.hash) \(fp.value)")
-                lines.append("a=setup:\(fp.setup ?? "actpass")")
-            }
-            for candidate in transport.candidates {
-                lines.append("a=\(SDPCandidate.line(from: candidate))")
-            }
+            lines.append(contentsOf: transportLines(transport))
         }
 
         lines.append("a=mid:\(media.kind)")
@@ -68,6 +59,18 @@ public enum SDPBuilder {
         if let source = media.sources.first {
             lines.append(contentsOf: sourceLines(source))
         }
+        return lines
+    }
+
+    private static func transportLines(_ transport: JingleTransport) -> [String] {
+        var lines: [String] = []
+        if let ufrag = transport.ufrag { lines.append("a=ice-ufrag:\(ufrag)") }
+        if let pwd = transport.pwd { lines.append("a=ice-pwd:\(pwd)") }
+        if let fp = transport.fingerprint {
+            lines.append("a=fingerprint:\(fp.hash) \(fp.value)")
+            lines.append("a=setup:\(fp.setup ?? "actpass")")
+        }
+        lines.append(contentsOf: transport.candidates.map { "a=\(SDPCandidate.line(from: $0))" })
         return lines
     }
 

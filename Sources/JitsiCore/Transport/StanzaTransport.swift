@@ -30,19 +30,3 @@ public protocol StanzaTransport: Actor {
     /// Connection-state transitions.
     var state: AsyncStream<ConnectionState> { get async }
 }
-
-public extension StanzaTransport {
-    /// Convenience: inbound frames already decoded to `String`.
-    func incomingStrings() async -> AsyncStream<String> {
-        let frames = await incoming
-        return AsyncStream { continuation in
-            let task = Task {
-                for await data in frames {
-                    continuation.yield(String(decoding: data, as: UTF8.self))
-                }
-                continuation.finish()
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
-    }
-}

@@ -23,10 +23,6 @@ public actor BridgeChannel {
 
     /// Called with the dominant-speaker endpoint id when it changes.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
-    /// Called once when the wss handshake completes (the JVB accepted us).
-    public var onOpen: (@Sendable () -> Void)?
-    /// Called when the socket closes, with the close code.
-    public var onClose: (@Sendable (Int) -> Void)?
     /// Every raw colibri message, for diagnostics — the JVB reports endpoint
     /// connectivity and other state here that we do not model yet.
     public var onMessage: (@Sendable (String) -> Void)?
@@ -41,13 +37,13 @@ public actor BridgeChannel {
         onDominantSpeaker = handler
     }
 
+    /// Called once when the wss handshake completes (the JVB accepted us).
     public func setOpenHandler(_ handler: @escaping @Sendable () -> Void) {
-        onOpen = handler
         delegate.onOpen = handler
     }
 
+    /// Called when the socket closes, with the close code.
     public func setCloseHandler(_ handler: @escaping @Sendable (Int) -> Void) {
-        onClose = handler
         delegate.onClose = handler
     }
 
@@ -107,8 +103,9 @@ public actor BridgeChannel {
 }
 
 /// Bridges `URLSessionWebSocketDelegate`'s open/close callbacks (delivered on the
-/// session's delegate queue) to `@Sendable` handlers `BridgeChannel` sets before
-/// connecting. Confirming the wss handshake is the [MAC] signal Linux can't give.
+/// session's delegate queue) to the `@Sendable` handlers `BridgeChannel` sets
+/// before connecting. Confirming the wss handshake is the [MAC] signal Linux
+/// can't give.
 private final class WSDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Sendable {
     var onOpen: (@Sendable () -> Void)?
     var onClose: (@Sendable (Int) -> Void)?

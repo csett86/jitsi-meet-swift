@@ -33,36 +33,45 @@ public struct LocalSDP: Equatable, Sendable {
 /// layer uses it to build the Jingle we send back to Jicofo.
 public enum SDPAnswerParser {
 
-    public static func parse(_ sdp: String) -> LocalSDP {
-        // Session-level ICE/DTLS can apply to all media (bundle); track as fallback.
-        var sessionUfrag: String?
-        var sessionPwd: String?
-        var sessionFingerprintHash: String?
-        var sessionFingerprintValue: String?
-        var sessionSetup: String?
+    /// ICE/DTLS state gathered for one scope (session level, or one m-section).
+    private struct TransportAttributes {
+        var ufrag: String?
+        var pwd: String?
+        var fingerprintHash: String?
+        var fingerprintValue: String?
+        var setup: String?
+    }
 
+    public static func parse(_ sdp: String) -> LocalSDP {
+        // Session-level ICE/DTLS can apply to all media (bundle); keep it as the
+        // fallback for anything an m-section does not restate.
+        var session = TransportAttributes()
+        var section = TransportAttributes()
         var media: [LocalSDPMedia] = []
         var current: LocalSDPMedia?
-        // ssrc -> (cname, msid), preserving first-seen order.
-        var ssrcOrder: [String] = []
-        var ssrcInfo: [String: LocalSSRC] = [:]
-        var fpHash: String?
-        var fpValue: String?
-        var setup: String?
+        // SSRCs in first-seen order; a real answer has only a handful per section.
+        var sources: [LocalSSRC] = []
+
+        /// Attributes before the first `m=` belong to the session, not a section.
+        func set(_ key: WritableKeyPath<TransportAttributes, String?>, _ value: String) {
+            if current == nil { session[keyPath: key] = value } else { section[keyPath: key] = value }
+        }
 
         func flush() {
             guard var m = current else { return }
-            m.ufrag = m.ufrag ?? sessionUfrag
-            m.pwd = m.pwd ?? sessionPwd
-            let hash = fpHash ?? sessionFingerprintHash
-            let value = fpValue ?? sessionFingerprintValue
-            if let hash, let value {
-                m.fingerprint = DTLSFingerprint(hash: hash, setup: setup ?? sessionSetup, value: value)
+            m.ufrag = section.ufrag ?? session.ufrag
+            m.pwd = section.pwd ?? session.pwd
+            if let hash = section.fingerprintHash ?? session.fingerprintHash,
+               let value = section.fingerprintValue ?? session.fingerprintValue {
+                m.fingerprint = DTLSFingerprint(hash: hash,
+                                                setup: section.setup ?? session.setup,
+                                                value: value)
             }
-            m.sources = ssrcOrder.compactMap { ssrcInfo[$0] }
+            m.sources = sources
             media.append(m)
             current = nil
-            ssrcOrder = []; ssrcInfo = [:]; fpHash = nil; fpValue = nil; setup = nil
+            section = TransportAttributes()
+            sources = []
         }
 
         // Normalize CRLF first: in Swift "\r\n" is a single Character (grapheme),
@@ -70,60 +79,74 @@ public enum SDPAnswerParser {
         let normalized = sdp
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
-        for rawLine in normalized.split(separator: "\n", omittingEmptySubsequences: true) {
-            let line = String(rawLine)
-            if line.hasPrefix("m=") {
+        for line in normalized.split(separator: "\n", omittingEmptySubsequences: true) {
+            // Every SDP line is `<type>=<body>`; attributes are `a=<name>[:<value>]`.
+            let (type, body) = split(line, on: "=")
+            switch type {
+            case "m":
                 flush()
-                current = parseMediaHeader(line)
-            } else if line.hasPrefix("a=ice-ufrag:") {
-                let v = value(line, after: "a=ice-ufrag:")
-                if current != nil { current?.ufrag = v } else { sessionUfrag = v }
-            } else if line.hasPrefix("a=ice-pwd:") {
-                let v = value(line, after: "a=ice-pwd:")
-                if current != nil { current?.pwd = v } else { sessionPwd = v }
-            } else if line.hasPrefix("a=fingerprint:") {
-                let parts = value(line, after: "a=fingerprint:").split(separator: " ")
-                if parts.count == 2 {
-                    if current != nil { fpHash = String(parts[0]); fpValue = String(parts[1]) }
-                    else { sessionFingerprintHash = String(parts[0]); sessionFingerprintValue = String(parts[1]) }
+                current = parseMediaHeader(body)
+            case "a":
+                let (name, value) = split(body, on: ":")
+                switch name {
+                case "ice-ufrag": set(\.ufrag, value)
+                case "ice-pwd": set(\.pwd, value)
+                case "setup": set(\.setup, value)
+                case "fingerprint":
+                    let parts = value.split(separator: " ")
+                    if parts.count == 2 {
+                        set(\.fingerprintHash, String(parts[0]))
+                        set(\.fingerprintValue, String(parts[1]))
+                    }
+                case "candidate":
+                    if let candidate = SDPCandidate.parse(value) { current?.candidates.append(candidate) }
+                case "ssrc":
+                    parseSSRC(value, into: &sources)
+                default: break
                 }
-            } else if line.hasPrefix("a=setup:") {
-                let v = value(line, after: "a=setup:")
-                if current != nil { setup = v } else { sessionSetup = v }
-            } else if line.hasPrefix("a=candidate:") {
-                if let c = SDPCandidate.parse(line) { current?.candidates.append(c) }
-            } else if line.hasPrefix("a=ssrc:") {
-                parseSSRC(value(line, after: "a=ssrc:"), order: &ssrcOrder, info: &ssrcInfo)
+            default: break
             }
         }
         flush()
         return LocalSDP(media: media)
     }
 
-    private static func parseMediaHeader(_ line: String) -> LocalSDPMedia {
+    private static func parseMediaHeader(_ body: String) -> LocalSDPMedia {
         // m=<kind> <port> <proto> <pt> <pt> ...
-        let tokens = value(line, after: "m=").split(separator: " ").map(String.init)
-        let kind = tokens.first ?? ""
-        let payloadIDs = tokens.dropFirst(3).compactMap(Int.init)
-        return LocalSDPMedia(mid: kind, kind: kind, payloadIDs: Array(payloadIDs),
+        let tokens = body.split(separator: " ")
+        let kind = tokens.first.map(String.init) ?? ""
+        return LocalSDPMedia(mid: kind, kind: kind,
+                             payloadIDs: tokens.dropFirst(3).compactMap { Int($0) },
                              ufrag: nil, pwd: nil, fingerprint: nil,
                              candidates: [], sources: [])
     }
 
-    private static func parseSSRC(_ rest: String, order: inout [String], info: inout [String: LocalSSRC]) {
+    private static func parseSSRC(_ value: String, into sources: inout [LocalSSRC]) {
         // "<ssrc> cname:foo"  or  "<ssrc> msid:stream track"
-        guard let space = rest.firstIndex(of: " ") else { return }
-        let ssrc = String(rest[..<space])
-        let attr = String(rest[rest.index(after: space)...])
-        if info[ssrc] == nil { order.append(ssrc); info[ssrc] = LocalSSRC(ssrc: ssrc) }
-        if attr.hasPrefix("cname:") {
-            info[ssrc]?.cname = String(attr.dropFirst("cname:".count))
-        } else if attr.hasPrefix("msid:") {
-            info[ssrc]?.msid = String(attr.dropFirst("msid:".count))
+        let (ssrc, attribute) = split(value, on: " ")
+        guard !attribute.isEmpty else { return }
+        let index: Int
+        if let existing = sources.firstIndex(where: { $0.ssrc == ssrc }) {
+            index = existing
+        } else {
+            sources.append(LocalSSRC(ssrc: ssrc))
+            index = sources.count - 1
+        }
+        let (name, detail) = split(attribute, on: ":")
+        switch name {
+        case "cname": sources[index].cname = detail
+        case "msid": sources[index].msid = detail
+        default: break
         }
     }
 
-    private static func value(_ line: String, after prefix: String) -> String {
-        String(line.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+    /// Split at the first occurrence of `separator`; the tail is empty when the
+    /// separator is absent. Both halves are whitespace-trimmed.
+    private static func split(_ line: some StringProtocol, on separator: Character) -> (String, String) {
+        guard let index = line.firstIndex(of: separator) else {
+            return (line.trimmingCharacters(in: .whitespaces), "")
+        }
+        return (line[..<index].trimmingCharacters(in: .whitespaces),
+                line[line.index(after: index)...].trimmingCharacters(in: .whitespaces))
     }
 }

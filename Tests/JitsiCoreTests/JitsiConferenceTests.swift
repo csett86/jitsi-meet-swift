@@ -133,8 +133,6 @@ final class JitsiConferenceTests: XCTestCase {
         XCTAssertTrue(states.contains(.joined))
     }
 
-    // MARK: - Outbound handshake
-
     // MARK: - Multi-party (Phase 3)
 
     func testMultiPartySourceAndDominantSpeakerEvents() async throws {
@@ -163,6 +161,8 @@ final class JitsiConferenceTests: XCTestCase {
         }
         XCTAssertEqual(dominant, ["e5f6a7b8"])
     }
+
+    // MARK: - Outbound handshake
 
     func testSendsExpectedHandshakeStanzas() async throws {
         let run = try await runFixture()

@@ -18,15 +18,11 @@ public enum JingleBuilder {
     public static func sessionAccept(sid: String, to: String, id: String,
                                      initiator: String, responder: String,
                                      offer: ParsedSessionDescription, local: LocalSDP) -> String {
-        let localByKind = Dictionary(uniqueKeysWithValues: local.media.map { ($0.kind, $0) })
-        var xml = "<iq type='set' to='\(to)' id='\(id)' xmlns='jabber:client'>"
-        xml += "<jingle xmlns='urn:xmpp:jingle:1' action='session-accept' sid='\(sid)'"
-        xml += " initiator='\(initiator)' responder='\(responder)'>"
-        for media in offer.media {
-            xml += content(media: media, local: localByKind[media.kind])
-        }
-        xml += "</jingle></iq>"
-        return xml
+        let localByKind = Dictionary(local.media.map { ($0.kind, $0) },
+                                     uniquingKeysWith: { first, _ in first })
+        return iq(action: "session-accept", sid: sid, to: to, id: id,
+                  initiator: initiator, responder: responder,
+                  contents: offer.media.map { content(media: $0, local: localByKind[$0.kind]) }.joined())
     }
 
     /// A `transport-info` carrying trickle ICE candidates for one media section.
@@ -35,36 +31,40 @@ public enum JingleBuilder {
                                      initiator: String, responder: String,
                                      mediaName: String, ufrag: String?, pwd: String?,
                                      candidates: [ICECandidate]) -> String {
-        var xml = "<iq type='set' to='\(to)' id='\(id)' xmlns='jabber:client'>"
-        xml += "<jingle xmlns='urn:xmpp:jingle:1' action='transport-info' sid='\(sid)'"
-        xml += " initiator='\(initiator)' responder='\(responder)'>"
-        xml += "<content creator='responder' name='\(mediaName)'>"
-        xml += transport(ufrag: ufrag, pwd: pwd, fingerprint: nil, candidates: candidates)
-        xml += "</content></jingle></iq>"
-        return xml
+        iq(action: "transport-info", sid: sid, to: to, id: id,
+           initiator: initiator, responder: responder,
+           contents: "<content creator='responder'" + attr("name", mediaName) + ">"
+               + transport(ufrag: ufrag, pwd: pwd, fingerprint: nil, candidates: candidates)
+               + "</content>")
     }
 
-    // MARK: - Content
+    // MARK: - Elements
+
+    /// The `<iq><jingle …>` envelope every action we send shares.
+    private static func iq(action: String, sid: String, to: String, id: String,
+                           initiator: String, responder: String, contents: String) -> String {
+        "<iq type='set'" + attr("to", to) + attr("id", id) + " xmlns='jabber:client'>"
+            + "<jingle xmlns='urn:xmpp:jingle:1'" + attr("action", action) + attr("sid", sid)
+            + attr("initiator", initiator) + attr("responder", responder) + ">"
+            + contents + "</jingle></iq>"
+    }
 
     private static func content(media: MediaDescription, local: LocalSDPMedia?) -> String {
-        var xml = "<content creator='responder' name='\(media.kind)' senders='both'>"
-        xml += "<description xmlns='urn:xmpp:jingle:apps:rtp:1' media='\(media.kind)'>"
+        var xml = "<content creator='responder'" + attr("name", media.kind) + " senders='both'>"
+        xml += "<description xmlns='urn:xmpp:jingle:apps:rtp:1'" + attr("media", media.kind) + ">"
         for payload in media.payloadTypes {
             xml += payloadType(payload)
         }
         for ext in media.headerExtensions {
-            xml += "<rtp-hdrext xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0' id='\(ext.id)' uri='\(ext.uri)'/>"
+            xml += "<rtp-hdrext xmlns='urn:xmpp:jingle:apps:rtp:rtp-hdrext:0'"
+                + attr("id", ext.id) + attr("uri", ext.uri) + "/>"
         }
         if media.rtcpMux { xml += "<rtcp-mux/>" }
         for source in local?.sources ?? [] {
-            xml += "<source ssrc='\(source.ssrc)' xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>"
-            if let cname = source.cname {
-                xml += "<parameter name='cname' value='\(cname)'/>"
-            }
-            if let msid = source.msid {
-                xml += "<parameter name='msid' value='\(escape(msid))'/>"
-            }
-            xml += "</source>"
+            xml += "<source" + attr("ssrc", source.ssrc) + " xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>"
+                + parameter("cname", source.cname)
+                + parameter("msid", source.msid)
+                + "</source>"
         }
         xml += "</description>"
         xml += transport(ufrag: local?.ufrag, pwd: local?.pwd,
@@ -74,52 +74,52 @@ public enum JingleBuilder {
     }
 
     private static func payloadType(_ payload: PayloadType) -> String {
-        var xml = "<payload-type id='\(payload.id)'"
-        if let name = payload.name { xml += " name='\(name)'" }
-        if let clock = payload.clockrate { xml += " clockrate='\(clock)'" }
-        if let channels = payload.channels { xml += " channels='\(channels)'" }
-        xml += ">"
-        for (key, value) in payload.parameters.sorted(by: { $0.key < $1.key }) {
-            xml += "<parameter name='\(key)' value='\(escape(value))'/>"
+        var xml = "<payload-type" + attr("id", payload.id) + attr("name", payload.name)
+            + attr("clockrate", payload.clockrate) + attr("channels", payload.channels) + ">"
+        for (name, value) in payload.parameters.sorted(by: { $0.key < $1.key }) {
+            xml += parameter(name, value)
         }
         for fb in payload.rtcpFeedback {
-            xml += "<rtcp-fb xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0' type='\(fb.type)'"
-            if let subtype = fb.subtype { xml += " subtype='\(subtype)'" }
-            xml += "/>"
+            xml += "<rtcp-fb xmlns='urn:xmpp:jingle:apps:rtp:rtcp-fb:0'"
+                + attr("type", fb.type) + attr("subtype", fb.subtype) + "/>"
         }
-        xml += "</payload-type>"
-        return xml
+        return xml + "</payload-type>"
     }
 
     private static func transport(ufrag: String?, pwd: String?,
                                   fingerprint: DTLSFingerprint?, candidates: [ICECandidate]) -> String {
         var xml = "<transport xmlns='urn:xmpp:jingle:transports:ice-udp:1'"
-        if let ufrag { xml += " ufrag='\(ufrag)'" }
-        if let pwd { xml += " pwd='\(pwd)'" }
-        xml += ">"
+            + attr("ufrag", ufrag) + attr("pwd", pwd) + ">"
         if let fp = fingerprint {
-            xml += "<fingerprint xmlns='urn:xmpp:jingle:apps:dtls:0' hash='\(fp.hash)'"
-            if let setup = fp.setup { xml += " setup='\(setup)'" }
-            xml += ">\(fp.value)</fingerprint>"
+            xml += "<fingerprint xmlns='urn:xmpp:jingle:apps:dtls:0'"
+                + attr("hash", fp.hash) + attr("setup", fp.setup) + ">\(escape(fp.value))</fingerprint>"
         }
-        for c in candidates {
-            xml += candidateElement(c)
+        for candidate in candidates {
+            xml += candidateElement(candidate)
         }
-        xml += "</transport>"
-        return xml
+        return xml + "</transport>"
     }
 
     private static func candidateElement(_ c: ICECandidate) -> String {
-        var xml = "<candidate"
-        if let f = c.foundation { xml += " foundation='\(f)'" }
-        if let comp = c.component { xml += " component='\(comp)'" }
-        if let proto = c.proto { xml += " protocol='\(proto)'" }
-        if let prio = c.priority { xml += " priority='\(prio)'" }
-        if let ip = c.ip { xml += " ip='\(ip)'" }
-        if let port = c.port { xml += " port='\(port)'" }
-        if let type = c.type { xml += " type='\(type)'" }
-        xml += " generation='0'/>"
-        return xml
+        "<candidate"
+            + attr("foundation", c.foundation) + attr("component", c.component)
+            + attr("protocol", c.proto) + attr("priority", c.priority)
+            + attr("ip", c.ip) + attr("port", c.port) + attr("type", c.type)
+            + " generation='0'/>"
+    }
+
+    // MARK: - Escaping
+
+    /// One attribute, omitted entirely when the value is nil.
+    private static func attr(_ name: String, _ value: (some CustomStringConvertible)?) -> String {
+        guard let value else { return "" }
+        return " \(name)='\(escape(value.description))'"
+    }
+
+    /// A `<parameter name= value=/>`, omitted entirely when the value is nil.
+    private static func parameter(_ name: String, _ value: String?) -> String {
+        guard let value else { return "" }
+        return "<parameter" + attr("name", name) + attr("value", value) + "/>"
     }
 
     private static func escape(_ s: String) -> String {
