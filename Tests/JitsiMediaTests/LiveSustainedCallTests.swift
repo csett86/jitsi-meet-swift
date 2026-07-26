@@ -188,7 +188,10 @@ final class LiveSustainedCallTests: XCTestCase {
         call.onBridgeClose = { code in timeline.record("BRIDGE CLOSED code=\(code)") }
         call.onBridgeMessage = { text in timeline.record("BRIDGE <- \(text.prefix(160))") }
         call.onDominantSpeaker = { ep in timeline.record("dominant speaker: \(ep)") }
-        call.onRemoteTrack = { track in timeline.record("remote track: \(track.kind)") }
+        call.onRemoteMediaTrack = { remote in
+            timeline.record("remote \(remote.kind) track from \(remote.endpointID) (mid \(remote.mid))")
+        }
+        call.onError = { message in timeline.record("MEDIA ERROR: \(message)") }
 
         // A `session-terminate` is Jicofo legitimately ending the session (e.g.
         // once everyone else has left). ICE going down afterwards is then the

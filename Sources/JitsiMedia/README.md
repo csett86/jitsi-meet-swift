@@ -18,7 +18,13 @@ Contents (Phase 2 — implemented, awaiting Mac verification):
 - `LocalMediaSource.swift` — AVFoundation camera/mic → `RTCVideoTrack`/`RTCAudioTrack`.
 - `MediaSession.swift` — ties a `ParsedSessionDescription` to a live
   `RTCPeerConnection` (set remote offer, add local media, create/send answer,
-  trickle ICE), exposing outbound signaling via callbacks.
+  trickle ICE), exposing outbound signaling via callbacks. It also owns the
+  **receive** side: `syncRemoteTracks(_:)` rebuilds the remote description from
+  `JitsiCore.RemoteSDPSession` (one receive-only m-section per remote track) and
+  renegotiates locally on every `source-add`/`source-remove`, then reports each
+  remote track with the participant it belongs to — matched by **mid**, not by
+  msid string-matching. `statistics(_:)` exposes the RTP counters that
+  distinguish "ICE connected" from "media actually flowing".
 - `BridgeChannel.swift` (Phase 3) — the colibri `<web-socket>` from the
   `session-initiate`; sends `QualityController` receiver constraints and surfaces
   dominant-speaker events. Wired into `MediaSession`.

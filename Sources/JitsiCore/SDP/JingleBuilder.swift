@@ -15,14 +15,27 @@ public enum JingleBuilder {
     /// `session-initiate`). This is deliberately distinct from the Jingle
     /// `initiator` attribute (`focus@auth.…/focus`): Jicofo routes Jingle over
     /// the room, so addressing the reply to the bare auth JID is not delivered.
+    /// `endpointID` is our MUC nick. Jitsi's source-name signaling derives every
+    /// source name from it (`<endpoint>-a0`, `<endpoint>-v0`); without a name the
+    /// focus cannot attribute our SSRCs to us, so other participants never see
+    /// our media.
     public static func sessionAccept(sid: String, to: String, id: String,
                                      initiator: String, responder: String,
-                                     offer: ParsedSessionDescription, local: LocalSDP) -> String {
+                                     offer: ParsedSessionDescription, local: LocalSDP,
+                                     endpointID: String? = nil) -> String {
         let localByKind = Dictionary(local.media.map { ($0.kind, $0) },
                                      uniquingKeysWith: { first, _ in first })
         return iq(action: "session-accept", sid: sid, to: to, id: id,
                   initiator: initiator, responder: responder,
-                  contents: offer.media.map { content(media: $0, local: localByKind[$0.kind]) }.joined())
+                  contents: offer.media.map {
+                      content(media: $0, local: localByKind[$0.kind], endpointID: endpointID)
+                  }.joined())
+    }
+
+    /// The Jitsi source name for one of our own tracks: `<endpoint>-a0` / `-v0`.
+    /// Every SSRC of the same track (RTX, simulcast layers) carries the same name.
+    public static func sourceName(endpointID: String, kind: String) -> String {
+        "\(endpointID)-\(kind == "audio" ? "a" : "v")0"
     }
 
     /// A `transport-info` carrying trickle ICE candidates for one media section.
@@ -49,7 +62,8 @@ public enum JingleBuilder {
             + contents + "</jingle></iq>"
     }
 
-    private static func content(media: MediaDescription, local: LocalSDPMedia?) -> String {
+    private static func content(media: MediaDescription, local: LocalSDPMedia?,
+                                endpointID: String? = nil) -> String {
         var xml = "<content creator='responder'" + attr("name", media.kind) + " senders='both'>"
         xml += "<description xmlns='urn:xmpp:jingle:apps:rtp:1'" + attr("media", media.kind) + ">"
         for payload in media.payloadTypes {
@@ -60,11 +74,21 @@ public enum JingleBuilder {
                 + attr("id", ext.id) + attr("uri", ext.uri) + "/>"
         }
         if media.rtcpMux { xml += "<rtcp-mux/>" }
+        let name = endpointID.map { sourceName(endpointID: $0, kind: media.kind) }
         for source in local?.sources ?? [] {
-            xml += "<source" + attr("ssrc", source.ssrc) + " xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>"
+            xml += "<source" + attr("ssrc", source.ssrc) + attr("name", name)
+                + " xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>"
                 + parameter("cname", source.cname)
                 + parameter("msid", source.msid)
                 + "</source>"
+        }
+        // RTX / simulcast grouping, so the focus does not treat our extra SSRCs
+        // as separate tracks.
+        for group in local?.ssrcGroups ?? [] {
+            xml += "<ssrc-group" + attr("semantics", group.semantics)
+                + " xmlns='urn:xmpp:jingle:apps:rtp:ssma:0'>"
+                + group.ssrcs.map { "<source" + attr("ssrc", $0) + "/>" }.joined()
+                + "</ssrc-group>"
         }
         xml += "</description>"
         xml += transport(ufrag: local?.ufrag, pwd: local?.pwd,

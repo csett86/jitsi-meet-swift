@@ -158,7 +158,7 @@ final class ConferenceCallTests: XCTestCase {
         await fulfillment(of: [bridgeOpen], timeout: 45)
         // Bridge is up — exercise the receiver-constraints send path over it.
         call.setReceiverConstraints(
-            QualityController.constraints(visibleEndpoints: ["swiftbridge-b"], bandwidth: .medium))
+            QualityController.constraints(visibleSources: ["swiftbridge-b-v0"], bandwidth: .medium))
         try? await Task.sleep(nanoseconds: 1_000_000_000)
 
         callTask.cancel(); secondaryJoin.cancel(); primaryJoin.cancel()

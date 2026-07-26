@@ -36,6 +36,10 @@ public enum SourceChange: Equatable, Sendable {
 public struct SourceManager: Equatable, Sendable {
     /// SSRC → source.
     public private(set) var sources: [String: EndpointSource] = [:]
+    /// `<ssrc-group>`s seen so far (SIM / FID). Several SSRCs in one group are
+    /// one *track* — simulcast layers or an RTX stream — and must end up in a
+    /// single SDP m-section, so they are kept alongside the flat SSRC map.
+    public private(set) var groups: [SourceGroup] = []
 
     public init() {}
 
@@ -61,6 +65,14 @@ public struct SourceManager: Equatable, Sendable {
         var changes: [SourceChange] = []
         for content in jingle.contents {
             let media = content.media ?? content.name
+            if removing {
+                let gone = Set(content.sources.map(\.ssrc))
+                groups.removeAll { !$0.ssrcs.filter(gone.contains).isEmpty }
+            } else {
+                for group in content.sourceGroups where !groups.contains(group) {
+                    groups.append(group)
+                }
+            }
             for source in content.sources {
                 let owner = source.owner ?? ""
                 let endpointID = JID(owner)?.resource ?? (owner.isEmpty ? "unknown" : owner)
@@ -85,6 +97,76 @@ public struct SourceManager: Equatable, Sendable {
     public mutating func removeEndpoint(_ endpoint: String) -> [SourceChange] {
         let gone = sources.values.filter { $0.endpointID == endpoint }
         for source in gone { sources.removeValue(forKey: source.ssrc) }
+        let ssrcs = Set(gone.map(\.ssrc))
+        groups.removeAll { !$0.ssrcs.filter(ssrcs.contains).isEmpty }
         return gone.map(SourceChange.removed)
     }
+
+    /// The remote participants' media as *tracks* — the shape the receive path
+    /// needs, since one track can be carried by several SSRCs (simulcast/RTX)
+    /// but must become exactly one SDP m-section.
+    ///
+    /// The bridge's own `jvb-a0`/`jvb-v0` placeholders are excluded: they are not
+    /// a participant's camera or microphone and never carry media.
+    public var tracks: [RemoteTrack] {
+        // Union the SSRCs that a source-group ties together, so simulcast layers
+        // and an RTX stream collapse into their primary's track.
+        var primaryOf: [String: String] = [:]
+        for group in groups {
+            guard let primary = group.ssrcs.first else { continue }
+            let root = primaryOf[primary] ?? primary
+            for ssrc in group.ssrcs { primaryOf[ssrc] = root }
+        }
+
+        var byPrimary: [String: RemoteTrack] = [:]
+        // Deterministic order (dictionary iteration is not): SSRCs numerically.
+        for source in sources.values.filter({ !$0.isBridge }).sorted(by: Self.bySSRC) {
+            let primary = primaryOf[source.ssrc] ?? source.ssrc
+            if var track = byPrimary[primary] {
+                track.ssrcs.append(source.ssrc)
+                track.msid = track.msid ?? source.msid
+                byPrimary[primary] = track
+            } else {
+                byPrimary[primary] = RemoteTrack(
+                    endpointID: source.endpointID, kind: source.media,
+                    name: source.name, primarySSRC: primary,
+                    ssrcs: [source.ssrc], msid: source.msid)
+            }
+        }
+        // A group's primary can arrive after a secondary; put it back in front.
+        return byPrimary.values.map { track in
+            var track = track
+            track.ssrcs = [track.primarySSRC] + track.ssrcs.filter { $0 != track.primarySSRC }
+            return track
+        }.sorted { ($0.endpointID, $0.kind, $0.primarySSRC) < ($1.endpointID, $1.kind, $1.primarySSRC) }
+    }
+
+    private static func bySSRC(_ lhs: EndpointSource, _ rhs: EndpointSource) -> Bool {
+        (UInt32(lhs.ssrc) ?? 0, lhs.ssrc) < (UInt32(rhs.ssrc) ?? 0, rhs.ssrc)
+    }
+}
+
+/// One remote *track*: every SSRC that carries a single participant's camera or
+/// microphone, plus who owns it. Derived from ``SourceManager``; consumed by the
+/// receive-path SDP builder, which turns each track into one m-section.
+public struct RemoteTrack: Equatable, Sendable {
+    public var endpointID: String
+    public var kind: String              // audio / video
+    /// Jitsi source name (`<endpoint>-v0`), when the deployment signals one.
+    public var name: String?
+    /// The SSRC the other SSRCs (simulcast layers, RTX) hang off.
+    public var primarySSRC: String
+    /// All SSRCs of the track, primary first.
+    public var ssrcs: [String]
+    public var msid: String?
+
+    public init(endpointID: String, kind: String, name: String?, primarySSRC: String,
+                ssrcs: [String], msid: String?) {
+        self.endpointID = endpointID; self.kind = kind; self.name = name
+        self.primarySSRC = primarySSRC; self.ssrcs = ssrcs; self.msid = msid
+    }
+
+    /// Stable identity across `source-add`/`source-remove`, so a track keeps its
+    /// m-section (and therefore its mid) for the lifetime of the session.
+    public var id: String { "\(endpointID)/\(kind)/\(name ?? primarySSRC)" }
 }

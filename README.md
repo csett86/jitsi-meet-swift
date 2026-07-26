@@ -20,9 +20,10 @@ protocol boundaries.
 Sources/
   JitsiCore/     PURE Swift — no AppKit/AVFoundation/WebRTC/Combine. Builds on Linux.
   JitsiMedia/    Apple-only — stasel/WebRTC + AVFoundation. macOS only. [MAC]
-  JitsiApp/      macOS SwiftUI/AppKit app. Built in Xcode. [MAC]
+  JitsiApp/      macOS SwiftUI/AppKit app. SwiftPM executable + Tools/mac-app. [MAC]
 Tools/
   LiveCapture/   Headless XMPP capture client for live fixture capture. [CLOUD-LIVE]
+  mac-app/       Wraps the JitsiApp executable in a runnable .app bundle. [MAC]
 Tests/
   JitsiCoreTests/  Deterministic, offline — the CI gate. [CLOUD]
   JitsiLiveTests/  Live signaling tests — non-gating, opt-in. [CLOUD-LIVE]
@@ -73,11 +74,28 @@ and never scheduled. Read **`docs/live-testing.md`** before running anything liv
   `MediaSession`) is in `JitsiMedia`; a real `RTCPeerConnection` accepts the
   generated offer (verified on macOS).
 - Phase 3: multi-party state in `JitsiCore/Media` — `SourceManager`
-  (SSRC↔participant from `source-add`/`source-remove`), `QualityController`
-  (lastN + resolution + colibri receiver-constraints message), and
-  `DominantSpeakerTracker` — all pure and **unit-tested on Linux** (68 core
-  tests), wired into `JitsiConference`. The `[MAC]` bridge-channel WebSocket
+  (SSRC↔participant from `source-add`/`source-remove`, grouped into tracks),
+  `QualityController` (lastN + resolution + colibri receiver-constraints
+  message), and `DominantSpeakerTracker` — all pure and **unit-tested on Linux**,
+  wired into `JitsiConference`. The `[MAC]` bridge-channel WebSocket
   (`JitsiMedia/BridgeChannel`) carries constraints/dominant-speaker.
+- Phase 3 (media paths): the receive side is `JitsiCore/SDP/RemoteSDPSession` —
+  the bridge never re-offers, so the client synthesizes one receive-only
+  m-section per remote source and renegotiates its own peer connection;
+  `JitsiMedia/MediaSession` drives that and reports each remote track with the
+  participant it belongs to. **Camera/mic capture, RTP in both directions and
+  remote video rendering were exercised live** against `jitsi.luki.org` with a
+  browser participant; getting there needed source-name receiver constraints and
+  `<SourceInfo>` presence — both written up in `docs/findings.md` ("Real media:
+  what it takes for RTP to actually flow").
+- Phase 4: the macOS app (`Sources/JitsiApp`) — join screen, tile grid with
+  dominant-speaker highlight, mic/camera/leave, live RTP counters. It is a
+  SwiftPM executable; `Tools/mac-app/make-app.sh` wraps it in a signed .app
+  bundle with the camera/microphone usage descriptions:
+
+  ```sh
+  ./Tools/mac-app/make-app.sh && open build/JitsiMeetSwift.app
+  ```
 
 See `docs/findings.md`. Media (WebRTC) and UI (SwiftUI) are `[MAC]` — written by
 the agent, verified by a human (`docs/mac-signoff.md`).

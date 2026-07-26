@@ -34,6 +34,10 @@ public enum ConferenceEvent: Equatable, Sendable {
     case sessionTerminated(reason: String?)
     /// Remote media sources added/removed (source-add / source-remove).
     case sourceChanged([SourceChange])
+    /// The complete set of remote tracks after such a change — SSRCs already
+    /// grouped per participant track. The media layer syncs its receive-only
+    /// m-sections to this and renegotiates.
+    case remoteTracks([RemoteTrack])
     /// The dominant speaker changed to this endpoint id.
     case dominantSpeaker(String)
 }

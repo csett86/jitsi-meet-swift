@@ -108,5 +108,74 @@ final class SDPAcceptanceTests: XCTestCase {
         XCTAssertEqual(j.action, "session-accept")
         XCTAssertEqual(Set(j.contents.map(\.name)), ["audio", "video"])
     }
+
+    /// The receive path, offline: after `source-add`, the rebuilt remote offer
+    /// (one extra m-section per remote track) must still be accepted by a real
+    /// `RTCPeerConnection` *mid-session*, and must produce actual receivers with
+    /// the mids we allocated — that mapping is what puts a participant's video in
+    /// the right tile. Renegotiation is the piece most likely to be rejected, and
+    /// it needs no live server to check.
+    func testRenegotiationAddsReceiversForRemoteParticipants() throws {
+        let offer = try fixtureOffer()
+        let factory = PeerConnectionFactory()
+        let pc = try makePeerConnection(factory)
+        defer { pc.close() }
+
+        var remote = RemoteSDPSession(offer: offer)
+        try setRemote(remote.sdp(), on: pc)
+
+        // Two participants publishing audio + video (the committed multi-party
+        // source-add fixture, replayed through the real source manager).
+        var manager = SourceManager()
+        for jingle in try multipartySourceAdds() { manager.apply(jingle) }
+        XCTAssertTrue(remote.sync(tracks: manager.tracks))
+        try setRemote(remote.sdp(), on: pc)
+
+        let answerExp = expectation(description: "answer")
+        pc.answer(for: RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)) { sdp, error in
+            XCTAssertNil(error)
+            guard let sdp else { return answerExp.fulfill() }
+            pc.setLocalDescription(sdp) { error in
+                XCTAssertNil(error, "answering the renegotiated offer failed")
+                answerExp.fulfill()
+            }
+        }
+        wait(for: [answerExp], timeout: 15)
+
+        // One receiver per remote track, each on the mid we allocated for it.
+        let receiving = pc.transceivers.compactMap { transceiver -> (String, String)? in
+            guard let endpoint = remote.endpoint(forMid: transceiver.mid),
+                  let track = transceiver.receiver.track else { return nil }
+            return (endpoint, track.kind)
+        }
+        XCTAssertEqual(Set(receiving.map(\.0)), ["a1b2c3d4", "e5f6a7b8"])
+        XCTAssertEqual(receiving.filter { $0.1 == "video" }.count, 2)
+        XCTAssertEqual(receiving.filter { $0.1 == "audio" }.count, 2)
+        // Our own two sections stay sendrecv — the receive sections are additive.
+        let localSDP = pc.localDescription?.sdp ?? ""
+        XCTAssertEqual(localSDP.components(separatedBy: "m=").count - 1, 6)
+    }
+
+    private func setRemote(_ sdp: String, on pc: RTCPeerConnection) throws {
+        let exp = expectation(description: "setRemoteDescription")
+        var setError: Error?
+        pc.setRemoteDescription(RTCSessionDescription(type: .offer, sdp: sdp)) { error in
+            setError = error; exp.fulfill()
+        }
+        wait(for: [exp], timeout: 10)
+        XCTAssertNil(setError, "real RTCPeerConnection rejected the offer: "
+                     + String(describing: setError) + "\n" + sdp)
+    }
+
+    private func multipartySourceAdds() throws -> [Jingle] {
+        let url = Self.fixturesDir.appendingPathComponent("multiparty-sources.json")
+        let frames = try JSONDecoder().decode([Frame].self, from: try Data(contentsOf: url))
+        let stanzas = StanzaParser.parse(frames: frames.filter { $0.direction == "in" }.map(\.payload))
+        var out: [Jingle] = []
+        for case let .iq(iq) in stanzas {
+            if case let .jingle(j) = iq.payload, j.action == "source-add" { out.append(j) }
+        }
+        return out
+    }
 }
 #endif

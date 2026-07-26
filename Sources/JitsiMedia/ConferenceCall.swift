@@ -27,7 +27,19 @@ public final class ConferenceCall {
 
     /// Observability for the harness / app.
     public var onIceStateChange: ((RTCIceConnectionState) -> Void)?
-    public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
+    /// A remote participant's track is now being received, with the participant
+    /// it belongs to. This is what the UI puts in a tile.
+    public var onRemoteMediaTrack: ((RemoteMediaTrack) -> Void)?
+    /// A previously received remote track went away, by mid.
+    public var onRemoteTrackEnded: ((String) -> Void)?
+    /// Every conference event, re-broadcast. The call owns the conference's
+    /// single-consumer `AsyncStream`, so this is how the app sees roster,
+    /// connection state and dominant-speaker changes.
+    public var onEvent: ((ConferenceEvent) -> Void)?
+    /// A media-layer error (renegotiation refused, no peer connection, …).
+    public var onError: ((String) -> Void)?
+    /// The negotiated transceiver layout after each (re)negotiation.
+    public var onNegotiated: ((String) -> Void)?
     /// The colibri bridge wss handshake completed.
     public var onBridgeOpen: (@Sendable () -> Void)?
     /// Every raw colibri message from the JVB (diagnostics).
@@ -53,9 +65,14 @@ public final class ConferenceCall {
     public func run() async {
         let events = await conference.events
         for await event in events {
+            onEvent?(event)
             switch event {
             case .iceServers(let servers):
                 iceServers = servers
+            case .remoteTracks(let tracks):
+                // Another participant published or dropped media: give the peer
+                // connection a matching receive section and renegotiate.
+                session?.syncRemoteTracks(tracks)
             case .sessionDescription(let offer):
                 // A re-invite replaces any previous session; close the old peer
                 // connection rather than leaking it.
@@ -90,6 +107,13 @@ public final class ConferenceCall {
         answerReady = false
     }
 
+    /// RTP counters for the current call — proof that media is actually flowing,
+    /// not merely that ICE connected. Yields zeroed stats when there is no call.
+    public func statistics(_ completion: @escaping (MediaStats) -> Void) {
+        guard let session else { return completion(MediaStats()) }
+        session.statistics(completion)
+    }
+
     /// Push receiver video constraints (lastN / selected / resolution) to the
     /// bridge — the output of `JitsiCore.QualityController`. No-op before a call.
     public func setReceiverConstraints(_ constraints: ReceiverConstraints) {
@@ -122,7 +146,10 @@ public final class ConferenceCall {
             }
         }
         session.onIceStateChange = { [weak self] state in self?.onIceStateChange?(state) }
-        session.onRemoteTrack = { [weak self] track in self?.onRemoteTrack?(track) }
+        session.onRemoteMediaTrack = { [weak self] track in self?.onRemoteMediaTrack?(track) }
+        session.onRemoteTrackEnded = { [weak self] mid in self?.onRemoteTrackEnded?(mid) }
+        session.onError = { [weak self] message in self?.onError?(message) }
+        session.onNegotiated = { [weak self] shape in self?.onNegotiated?(shape) }
         // Forward the @Sendable bridge handlers as-is (no self capture) — these
         // must be set before accept(), which opens the bridge channel.
         session.onBridgeOpen = onBridgeOpen
