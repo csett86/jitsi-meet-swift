@@ -145,6 +145,12 @@ open -n build/JitsiMeetSwift.app --args \
   https://jitsi.luki.org/<room> --autojoin --leave-after 25 --log /tmp/jitsi-a.log
 ```
 
+`--snapshot <path> [--snapshot-after <seconds>]` writes a PNG of the app's own
+window. Metal-rendered video is invisible to AppKit's view-drawing APIs, so this
+is the only way to check *rendering* (is the video there, is the self-view
+mirrored, is the right tile highlighted) without a human at the screen — and
+capturing our own window needs no screen-recording permission.
+
 The app logs to `~/Library/Logs/JitsiMeetSwift.log` (or `--log <path>`). What to
 look for, in order:
 

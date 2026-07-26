@@ -17,6 +17,12 @@ struct ContentView: View {
         .task {
             guard model.autoJoinRequested else { return }
             model.join()
+            if let snapshot = WindowSnapshot.requested {
+                Task {
+                    try? await Task.sleep(nanoseconds: UInt64(snapshot.delay * 1_000_000_000))
+                    WindowSnapshot.capture(to: snapshot.path)
+                }
+            }
             if let seconds = model.leaveAfter {
                 try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
                 model.leave()
