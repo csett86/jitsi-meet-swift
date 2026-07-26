@@ -41,4 +41,4 @@ jobs:
           # Python is externally managed — install into a venv we control.
           python3 -m venv /tmp/driftenv
           /tmp/driftenv/bin/pip install --quiet websockets
-          /tmp/driftenv/bin/python Tools/LiveCapture/python/drift_check.py "${{ inputs.test_url }}"
+          /tmp/driftenv/bin/python Tools/LiveCapture/python/drift_check.py "${{ inputs.test_url || 'https://jitsi.luki.org/jitsimeetswiftci' }}"
