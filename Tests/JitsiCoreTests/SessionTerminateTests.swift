@@ -40,8 +40,7 @@ final class SessionTerminateTests: XCTestCase {
         let config = try XCTUnwrap(ConferenceURLParser.parse("jitsi.luki.org/Room")).config
         let transport = FakeTransport(inboundFrames: [terminate])
         let conference = JitsiConference(transport: transport, config: config,
-                                         roomName: "Room", nick: "me", machineUID: "uid",
-                                         keepAlive: .disabled)
+                                         roomName: "Room", nick: "me", machineUID: "uid")
         var events: [ConferenceEvent] = []
         let stream = await conference.events
         async let collected: [ConferenceEvent] = {
@@ -74,8 +73,7 @@ final class SessionTerminateTests: XCTestCase {
         frames.append(terminate)
         let transport = FakeTransport(inboundFrames: frames)
         let conference = JitsiConference(transport: transport, config: config,
-                                         roomName: "Room", nick: "me", machineUID: "uid",
-                                         keepAlive: .disabled)
+                                         roomName: "Room", nick: "me", machineUID: "uid")
         await conference.join()
 
         let before = await transport.sent().count

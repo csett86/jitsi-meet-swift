@@ -168,9 +168,11 @@ The chain:
 handling that tears the media session down and clears session state so a later
 re-invite starts clean.
 
-**Verified live on macOS CI**, same test, both ways:
+**Verified live on macOS CI**, the same test run both ways while the keepalive
+was still switchable (the switch has since been removed — keepalive is mandatory,
+see ``KeepAlivePolicy``):
 
-| | keepalive off | keepalive on |
+| | keepalive off (pre-fix) | keepalive on (shipped) |
 | --- | --- | --- |
 | peer at ~65s | `presence type=unavailable` | stays |
 | `session-terminate` | at 85.7s | never |

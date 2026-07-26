@@ -61,8 +61,17 @@ public actor JitsiConference {
     ]
 
     public init(transport: any StanzaTransport, config: BackendConfig,
-                roomName: String, nick: String? = nil, machineUID: String? = nil,
-                keepAlive: KeepAlivePolicy = .default) {
+                roomName: String, nick: String? = nil, machineUID: String? = nil) {
+        self.init(transport: transport, config: config, roomName: roomName,
+                  nick: nick, machineUID: machineUID, keepAlive: .default)
+    }
+
+    /// Keepalive timing is only adjustable internally, so tests can drive the
+    /// ping loop without waiting whole seconds. There is no public knob and no
+    /// "off" — see ``KeepAlivePolicy``.
+    init(transport: any StanzaTransport, config: BackendConfig,
+         roomName: String, nick: String?, machineUID: String?,
+         keepAlive: KeepAlivePolicy) {
         self.transport = transport
         self.config = config
         self.roomName = roomName
@@ -124,7 +133,8 @@ public actor JitsiConference {
     /// a reverse proxy (nginx `proxy_read_timeout`, 60s by default) or the
     /// server's own idle limit to reap it.
     private func startKeepAlive() {
-        guard keepAliveTask == nil, let interval = keepAlivePolicy.interval else { return }
+        guard keepAliveTask == nil else { return }
+        let interval = keepAlivePolicy.interval
         keepAliveTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))

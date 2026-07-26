@@ -60,10 +60,18 @@ final class KeepAliveTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.health, .healthy)
     }
 
-    func testDisabledPolicyHasNoInterval() {
-        XCTAssertNil(KeepAlivePolicy.disabled.interval)
+    func testDefaultPolicyMatchesLibJitsiMeet() {
         XCTAssertEqual(KeepAlivePolicy.default.interval, 10)
         XCTAssertEqual(KeepAlivePolicy.default.missedPingThreshold, 3)
+    }
+
+    func testKeepAliveCannotBeDisabled() {
+        // A non-positive interval would mean "never ping" — the disabled
+        // behavior that caused the 60–95s call drop. It must fall back to the
+        // default rather than silently turning the keepalive off.
+        XCTAssertEqual(KeepAlivePolicy(interval: 0).interval, 10)
+        XCTAssertEqual(KeepAlivePolicy(interval: -5).interval, 10)
+        XCTAssertGreaterThan(KeepAlivePolicy(missedPingThreshold: 0).missedPingThreshold, 0)
     }
 }
 
@@ -100,23 +108,6 @@ final class ConferenceKeepAliveTests: XCTestCase {
         XCTAssertTrue(first.contains("id='ka-"))
     }
 
-    func testDisabledPolicySendsNoPings() async throws {
-        let inbound = try Fixtures.payloads("lukijitsi-join.json", direction: "in")
-        let transport = HoldingTransport(inboundFrames: inbound)
-        let conference = JitsiConference(
-            transport: transport, config: try config(), roomName: "KeepAliveRoom",
-            nick: "ka", machineUID: "uid", keepAlive: .disabled)
-
-        let joinTask = Task { await conference.join() }
-        try await Task.sleep(nanoseconds: 300_000_000)
-        let sent = await transport.sent()
-        await transport.finish()
-        joinTask.cancel()
-
-        XCTAssertTrue(sent.filter { $0.contains("urn:xmpp:ping") }.isEmpty,
-                      "keepalive disabled must not ping")
-    }
-
     func testRespondsToServerPing() async throws {
         // The server pinging us requires a reply, or it may drop the connection.
         let ping = "<iq type='get' id='server-ping-1' from='jitsi.luki.org' "
@@ -125,7 +116,8 @@ final class ConferenceKeepAliveTests: XCTestCase {
         let transport = HoldingTransport(inboundFrames: [ping])
         let conference = JitsiConference(
             transport: transport, config: try config(), roomName: "KeepAliveRoom",
-            nick: "ka", machineUID: "uid", keepAlive: .disabled)
+            nick: "ka", machineUID: "uid",
+            keepAlive: KeepAlivePolicy(interval: 60, missedPingThreshold: 3))
 
         let joinTask = Task { await conference.join() }
         try await Task.sleep(nanoseconds: 200_000_000)

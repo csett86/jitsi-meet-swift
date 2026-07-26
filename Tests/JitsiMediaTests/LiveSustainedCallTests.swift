@@ -146,11 +146,6 @@ final class LiveSustainedCallTests: XCTestCase {
     private var callSeconds: TimeInterval {
         TimeInterval(ProcessInfo.processInfo.environment["JITSI_CALL_SECONDS"] ?? "") ?? 150
     }
-    /// Set `JITSI_KEEPALIVE=0` to reproduce the pre-fix behavior.
-    private var keepAlivePolicy: KeepAlivePolicy {
-        ProcessInfo.processInfo.environment["JITSI_KEEPALIVE"] == "0" ? .disabled : .default
-    }
-
     func testLiveSustainedCallSurvives() async throws {
         try XCTSkipUnless(liveEnabled, "Set JITSI_LIVE_TESTS=1 to run the sustained live call.")
 
@@ -159,13 +154,13 @@ final class LiveSustainedCallTests: XCTestCase {
             ?? "https://jitsi.luki.org/jitsimeetswiftsustained"
         let room = base + String(UUID().uuidString.prefix(6)).lowercased()
         let parsed = try XCTUnwrap(ConferenceURLParser.parse(room))
-        timeline.record("room=\(parsed.roomName) keepAlive=\(keepAlivePolicy.interval.map { "\($0)s" } ?? "DISABLED") duration=\(callSeconds)s")
+        timeline.record("room=\(parsed.roomName) duration=\(callSeconds)s "
+                        + "(keepalive is always on: \(KeepAlivePolicy.default.interval)s)")
 
         // Primary: real media + full instrumentation.
         let primary = JitsiConference(
             transport: TeeTransport(url: parsed.config.xmppWebSocketURL, timeline: timeline, label: "A"),
-            config: parsed.config, roomName: parsed.roomName, nick: "swiftsustain-a",
-            keepAlive: keepAlivePolicy)
+            config: parsed.config, roomName: parsed.roomName, nick: "swiftsustain-a")
         let factory = PeerConnectionFactory()
         let localMedia = LocalMediaSource(factory: factory.factory)
         let call = ConferenceCall(conference: primary, factory: factory, localMedia: localMedia)
@@ -173,8 +168,7 @@ final class LiveSustainedCallTests: XCTestCase {
         // Secondary: signaling-only, present so Jicofo offers primary media.
         let secondary = JitsiConference(
             transport: URLSessionStanzaTransport(url: parsed.config.xmppWebSocketURL),
-            config: parsed.config, roomName: parsed.roomName, nick: "swiftsustain-b",
-            keepAlive: keepAlivePolicy)
+            config: parsed.config, roomName: parsed.roomName, nick: "swiftsustain-b")
 
         // --- instrumentation -------------------------------------------------
         let connected = expectation(description: "ICE connected")

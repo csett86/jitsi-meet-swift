@@ -22,10 +22,6 @@ on:
         description: "How long the sustained call holds (seconds)"
         required: false
         default: "150"
-      keepalive:
-        description: "XMPP keepalive: 1 = on (default), 0 = off (reproduce the pre-fix drop)"
-        required: false
-        default: "1"
 
 permissions:
   contents: read
@@ -59,7 +55,6 @@ jobs:
           JITSI_LIVE_TESTS: "1"
           JITSI_TEST_URL: ${{ inputs.test_url }}
           JITSI_CALL_SECONDS: ${{ inputs.call_seconds }}
-          JITSI_KEEPALIVE: ${{ inputs.keepalive }}
         run: swift test --filter testLiveSustainedCallSurvives
 
       # Drift check (Python) — a single short client that compares the live

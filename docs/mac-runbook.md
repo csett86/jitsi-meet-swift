@@ -92,7 +92,6 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    ```sh
    JITSI_LIVE_TESTS=1 JITSI_CALL_SECONDS=150 \
      swift test --filter testLiveSustainedCallSurvives
-   # reproduce the old failure: JITSI_KEEPALIVE=0
    ```
    Verified on macOS CI both ways (see docs/mac-signoff.md). Note this is still
    about *connection* survival — real camera/mic RTP and rendering remain item 3.

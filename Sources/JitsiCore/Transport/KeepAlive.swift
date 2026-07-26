@@ -1,31 +1,33 @@
 import Foundation
 
-/// How the signaling connection is kept alive.
+/// Timing for the signaling keepalive. **Keepalive is mandatory** — there is
+/// deliberately no way to switch it off.
 ///
-/// An XMPP-over-WebSocket connection that sends nothing is liable to be reaped
-/// by whatever sits in front of the XMPP server (an nginx reverse proxy's
-/// `proxy_read_timeout` defaults to 60s), and by the server's own idle limits.
-/// When that happens the client is silently dropped from the MUC, the focus
-/// tears down our bridge endpoint, and the media path dies shortly afterwards —
-/// with no XMPP stanza ever explaining why.
+/// An XMPP-over-WebSocket connection that sends nothing gets dropped by the
+/// server after roughly a minute. When that happens the client silently leaves
+/// the MUC; if that empties the conference of everyone else, the focus ends the
+/// session, and the media path dies with no stanza that obviously explains it.
+/// That was the root cause of the "call dies after 60–95s" bug (docs/findings.md),
+/// so the ability to run without a keepalive was removed rather than left as a
+/// footgun.
 ///
-/// `lib-jitsi-meet` avoids this by pinging (XEP-0199) every 10s; we do the same.
+/// `lib-jitsi-meet` pings (XEP-0199) every 10s; we do the same.
 public struct KeepAlivePolicy: Equatable, Sendable {
-    /// Seconds between pings. `nil` disables keepalive entirely.
-    public var interval: TimeInterval?
+    /// Seconds between pings.
+    public var interval: TimeInterval
     /// Consecutive unanswered pings tolerated before the link is declared dead.
     public var missedPingThreshold: Int
 
-    public init(interval: TimeInterval? = 10, missedPingThreshold: Int = 3) {
-        self.interval = interval
-        self.missedPingThreshold = missedPingThreshold
+    public init(interval: TimeInterval = 10, missedPingThreshold: Int = 3) {
+        // A non-positive interval would mean "never ping", i.e. the disabled
+        // behavior this type exists to prevent.
+        self.interval = interval > 0 ? interval : 10
+        self.missedPingThreshold = max(1, missedPingThreshold)
     }
 
-    /// The default: ping every 10s, give up after 3 unanswered (≈30s), matching
+    /// Ping every 10s, give up after 3 unanswered (≈30s), matching
     /// `lib-jitsi-meet`.
     public static let `default` = KeepAlivePolicy()
-    /// No keepalive — the pre-fix behavior. Useful for reproducing the drop.
-    public static let disabled = KeepAlivePolicy(interval: nil)
 }
 
 /// Health of the signaling link, derived purely from ping/pong bookkeeping.
