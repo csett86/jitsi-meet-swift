@@ -24,10 +24,16 @@ Contents:
   `@Published` state on the main actor, and feeds `QualityController`'s receiver
   constraints back to the bridge as tiles and the dominant speaker change.
 - `VideoTileView.swift` — `NSViewRepresentable` over `RTCMTLNSVideoView` (the
-  macOS Metal renderer), with the dominant-speaker highlight.
-- `FrameCounter.swift` / `Log.swift` — evidence for the `[MAC]` checks: frames
-  actually delivered to the renderer, and a log file a live run can be judged
-  from afterwards.
+  macOS Metal renderer), with the dominant-speaker highlight and the mirrored
+  self-view. The flip is re-applied in `layout()`: AppKit owns a layer-backed
+  view's transform and resets it, and its layer is anchored at the corner, so a
+  plain `scaleX: -1` set once does nothing visible (and, once it sticks, mirrors
+  the picture off the left edge unless translated by the width).
+- `FrameCounter.swift` / `Log.swift` / `WindowSnapshot.swift` — evidence for the
+  `[MAC]` checks: frames actually delivered to the renderer, a log file a live
+  run can be judged from afterwards, and a PNG of our own window (Metal content
+  never appears in AppKit's view-drawing APIs).
 
 Flags used by the live checks (docs/mac-runbook.md): `--autojoin`,
-`--leave-after <seconds>`, `--log <path>`, and a bare conference URL.
+`--leave-after <seconds>`, `--log <path>`, `--snapshot <path>`
+/ `--snapshot-after <seconds>`, and a bare conference URL.
