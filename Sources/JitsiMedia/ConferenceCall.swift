@@ -30,8 +30,16 @@ public final class ConferenceCall {
     public var onRemoteTrack: ((RTCMediaStreamTrack) -> Void)?
     /// The colibri bridge wss handshake completed.
     public var onBridgeOpen: (@Sendable () -> Void)?
+    /// Every raw colibri message from the JVB (diagnostics).
+    public var onBridgeMessage: (@Sendable (String) -> Void)?
+    /// The colibri bridge socket closed (close code). Load-bearing for call
+    /// survival — see `MediaSession.onBridgeClose`.
+    public var onBridgeClose: (@Sendable (Int) -> Void)?
     /// Dominant-speaker endpoint id, delivered over the colibri bridge channel.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
+    /// The focus ended the Jingle session, with its `<reason>` if given. Normal
+    /// end-of-call signal (e.g. the last other participant left).
+    public var onSessionTerminated: ((String?) -> Void)?
 
     public init(conference: JitsiConference, factory: PeerConnectionFactory,
                 localMedia: LocalMediaSource) {
@@ -49,7 +57,15 @@ public final class ConferenceCall {
             case .iceServers(let servers):
                 iceServers = servers
             case .sessionDescription(let offer):
+                // A re-invite replaces any previous session; close the old peer
+                // connection rather than leaking it.
                 startSession(offer: offer)
+            case .sessionTerminated(let reason):
+                // Jicofo ended the session (commonly: everyone else left). Tear
+                // the media down instead of leaving a peer connection that will
+                // later report a misleading ICE failure.
+                onSessionTerminated?(reason)
+                closeSession()
             case .remoteCandidates(let remote):
                 let mLineIndex: Int32 = remote.mediaName == "video" ? 1 : 0
                 for candidate in remote.candidates {
@@ -62,7 +78,17 @@ public final class ConferenceCall {
         }
     }
 
-    public func close() { session?.close() }
+    public func close() { closeSession() }
+
+    /// Tear down the current media session and reset the per-session state, so
+    /// a later re-invite (`session-initiate`) starts from a clean slate.
+    private func closeSession() {
+        session?.close()
+        session = nil
+        localCreds = [:]
+        bufferedCandidates = []
+        answerReady = false
+    }
 
     /// Push receiver video constraints (lastN / selected / resolution) to the
     /// bridge — the output of `JitsiCore.QualityController`. No-op before a call.
@@ -71,6 +97,7 @@ public final class ConferenceCall {
     }
 
     private func startSession(offer: ParsedSessionDescription) {
+        closeSession()      // a re-invite must not leak the previous connection
         let session = MediaSession(factory: factory.factory, localMedia: localMedia)
         self.session = session
 
@@ -99,6 +126,8 @@ public final class ConferenceCall {
         // Forward the @Sendable bridge handlers as-is (no self capture) — these
         // must be set before accept(), which opens the bridge channel.
         session.onBridgeOpen = onBridgeOpen
+        session.onBridgeClose = onBridgeClose
+        session.onBridgeMessage = onBridgeMessage
         session.onDominantSpeaker = onDominantSpeaker
 
         session.accept(offer: offer, iceServers: iceServers)

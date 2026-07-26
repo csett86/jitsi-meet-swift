@@ -23,6 +23,9 @@ public actor BridgeChannel {
 
     /// Called with the dominant-speaker endpoint id when it changes.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
+    /// Every raw colibri message, for diagnostics — the JVB reports endpoint
+    /// connectivity and other state here that we do not model yet.
+    public var onMessage: (@Sendable (String) -> Void)?
 
     public init(url: URL) {
         self.url = url
@@ -37,6 +40,15 @@ public actor BridgeChannel {
     /// Called once when the wss handshake completes (the JVB accepted us).
     public func setOpenHandler(_ handler: @escaping @Sendable () -> Void) {
         delegate.onOpen = handler
+    }
+
+    /// Called when the socket closes, with the close code.
+    public func setCloseHandler(_ handler: @escaping @Sendable (Int) -> Void) {
+        delegate.onClose = handler
+    }
+
+    public func setMessageHandler(_ handler: @escaping @Sendable (String) -> Void) {
+        onMessage = handler
     }
 
     public func connect() {
@@ -79,22 +91,33 @@ public actor BridgeChannel {
     }
 
     private func handleInbound(_ text: String) {
+        // Surface the raw colibri message first: the JVB reports things here we
+        // do not model yet (e.g. `EndpointConnectivityStatusChangeEvent`, which
+        // is the bridge's own view of whether an endpoint's media is arriving).
+        // Dropping them silently made a live call failure impossible to explain.
+        onMessage?(text)
         if let endpoint = EndpointMessage.dominantSpeaker(fromJSON: text) {
             onDominantSpeaker?(endpoint)
         }
     }
 }
 
-/// Bridges `URLSessionWebSocketDelegate`'s open callback (delivered on the
-/// session's delegate queue) to the `@Sendable` handler `BridgeChannel` sets
+/// Bridges `URLSessionWebSocketDelegate`'s open/close callbacks (delivered on the
+/// session's delegate queue) to the `@Sendable` handlers `BridgeChannel` sets
 /// before connecting. Confirming the wss handshake is the [MAC] signal Linux
 /// can't give.
 private final class WSDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Sendable {
     var onOpen: (@Sendable () -> Void)?
+    var onClose: (@Sendable (Int) -> Void)?
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didOpenWithProtocol protocol: String?) {
         onOpen?()
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                    didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        onClose?(closeCode.rawValue)
     }
 }
 #endif

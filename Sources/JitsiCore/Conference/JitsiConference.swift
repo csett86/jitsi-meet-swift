@@ -13,6 +13,7 @@ public actor JitsiConference {
     private let roomName: String
     private let nick: String
     private let machineUID: String
+    private let keepAlivePolicy: KeepAlivePolicy
 
     private let eventStream: AsyncStream<ConferenceEvent>
     private let eventContinuation: AsyncStream<ConferenceEvent>.Continuation
@@ -25,6 +26,12 @@ public actor JitsiConference {
     private var muc = MUCSession()
     private var sources = SourceManager()
     private var dominant = DominantSpeakerTracker()
+
+    // Keepalive (XEP-0199). Without this an idle XMPP WebSocket is reaped by the
+    // reverse proxy in front of the server (~60s), which silently drops us from
+    // the MUC and takes the media session with it — see KeepAlive.swift.
+    private var keepAlive: KeepAliveTracker
+    private var keepAliveTask: Task<Void, Never>?
 
     // Jingle session state (set when the focus sends `session-initiate`).
     /// The focus's MUC occupant JID — the `from` of `session-initiate`, and the
@@ -53,11 +60,23 @@ public actor JitsiConference {
 
     public init(transport: any StanzaTransport, config: BackendConfig,
                 roomName: String, nick: String? = nil, machineUID: String? = nil) {
+        self.init(transport: transport, config: config, roomName: roomName,
+                  nick: nick, machineUID: machineUID, keepAlive: .default)
+    }
+
+    /// Keepalive timing is only adjustable internally, so tests can drive the
+    /// ping loop without waiting whole seconds. There is no public knob and no
+    /// "off" — see ``KeepAlivePolicy``.
+    init(transport: any StanzaTransport, config: BackendConfig,
+         roomName: String, nick: String?, machineUID: String?,
+         keepAlive: KeepAlivePolicy) {
         self.transport = transport
         self.config = config
         self.roomName = roomName
         self.nick = nick ?? "swift-" + String(UUID().uuidString.prefix(8))
         self.machineUID = machineUID ?? UUID().uuidString
+        self.keepAlivePolicy = keepAlive
+        self.keepAlive = KeepAliveTracker(policy: keepAlive)
         (eventStream, eventContinuation) = AsyncStream.makeStream(of: ConferenceEvent.self)
     }
 
@@ -89,17 +108,63 @@ public actor JitsiConference {
         }
         for await data in inbound {
             let frame = String(decoding: data, as: UTF8.self)
+            // Any inbound frame proves the link is alive.
+            keepAlive.noteInboundTraffic()
             if let stanza = StanzaParser.parse(frame) {
                 await handle(stanza)
             }
         }
         stateTask.cancel()
+        stopKeepAlive()
         eventContinuation.finish()
     }
 
     public func leave() async {
+        stopKeepAlive()
         try? await transport.send(leavePresence())
         await transport.disconnect()
+    }
+
+    // MARK: - Keepalive (XEP-0199)
+
+    /// Start pinging the server so the connection is never idle long enough for
+    /// a reverse proxy (nginx `proxy_read_timeout`, 60s by default) or the
+    /// server's own idle limit to reap it.
+    private func startKeepAlive() {
+        guard keepAliveTask == nil else { return }
+        let interval = keepAlivePolicy.interval
+        keepAliveTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                if Task.isCancelled { return }
+                guard let self else { return }
+                await self.sendKeepAlivePing()
+            }
+        }
+    }
+
+    private func stopKeepAlive() {
+        keepAliveTask?.cancel()
+        keepAliveTask = nil
+    }
+
+    private func sendKeepAlivePing() async {
+        // Check health *before* adding another outstanding ping.
+        if case .dead(let missed) = keepAlive.health {
+            emit(.stateChanged(.failed("keepalive: \(missed) pings unanswered")))
+            stopKeepAlive()
+            return
+        }
+        let id = keepAlive.nextPingID()
+        do {
+            try await transport.send(pingRequest(id: id))
+        } catch {
+            emit(.stateChanged(.failed("keepalive send failed: \(error)")))
+            stopKeepAlive()
+        }
+        if case .degraded(let missed) = keepAlive.health, missed > 1 {
+            emit(.stateChanged(.reconnecting))
+        }
     }
 
     // MARK: - Media send-back (Jingle answer + trickle)
@@ -165,7 +230,21 @@ public actor JitsiConference {
     }
 
     private func handleIQ(_ iq: IQ) async {
+        // A reply to one of our keepalive pings — result or error, either proves
+        // the link is alive.
+        if iq.type == "result" || iq.type == "error",
+           KeepAliveTracker.isKeepAliveID(iq.id), let id = iq.id {
+            keepAlive.handleReply(id: id)
+            return
+        }
+
         switch iq.payload {
+        case .ping:
+            // The server is checking on us — a reply is mandatory, otherwise it
+            // may conclude the connection is dead and drop us.
+            if iq.type == "get", let id = iq.id, let from = iq.from {
+                try? await transport.send(iqResult(to: from, id: id))
+            }
         case .bind(let jid):
             boundJID = jid
             // Post-bind: discover the deployment, then ask Jicofo to allocate.
@@ -173,6 +252,8 @@ public actor JitsiConference {
             try? await transport.send(externalServicesRequest())
             try? await transport.send(conferenceRequest())
             emit(.stateChanged(.joining))
+            // The connection is now long-lived: keep it warm from here on.
+            startKeepAlive()
         case .discoInfo(let disco):
             if iq.type == "result" {
                 emit(.capabilities(BackendCapabilities(disco: disco)))
@@ -209,6 +290,13 @@ public actor JitsiConference {
             case "source-add", "source-remove":
                 let changes = sources.apply(jingle)
                 if !changes.isEmpty { emit(.sourceChanged(changes)) }
+            case "session-terminate":
+                // The focus ended the session — routinely, e.g. once everyone
+                // else has left. Drop the session state so a later re-invite
+                // starts clean, and tell the media layer to tear down.
+                pendingOffer = nil
+                sources = SourceManager()
+                emit(.sessionTerminated(reason: jingle.reason))
             default:
                 break
             }
@@ -301,6 +389,12 @@ public actor JitsiConference {
             + "<query xmlns='http://jabber.org/protocol/disco#info'>"
             + "<identity category='client' type='pc' name='JitsiMeetSwift'/>"
             + features + "</query></iq>"
+    }
+    /// XEP-0199 ping to the server domain — the keepalive that stops an idle
+    /// connection from being reaped.
+    private func pingRequest(id: String) -> String {
+        "<iq type='get' id='\(id)' to='\(host)' xmlns='jabber:client'>"
+        + "<ping xmlns='urn:xmpp:ping'/></iq>"
     }
     private func iqResult(to: String, id: String) -> String {
         "<iq type='result' to='\(to)' id='\(id)' xmlns='jabber:client'/>"
