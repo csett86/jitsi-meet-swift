@@ -192,8 +192,18 @@ final class LiveSustainedCallTests: XCTestCase {
         }
         call.onBridgeOpen = { timeline.record("BRIDGE open (colibri wss handshake ok)") }
         call.onBridgeClose = { code in timeline.record("BRIDGE CLOSED code=\(code)") }
+        call.onBridgeMessage = { text in timeline.record("BRIDGE <- \(text.prefix(160))") }
         call.onDominantSpeaker = { ep in timeline.record("dominant speaker: \(ep)") }
         call.onRemoteTrack = { track in timeline.record("remote track: \(track.kind)") }
+
+        // A `session-terminate` is Jicofo legitimately ending the session (e.g.
+        // once everyone else has left). ICE going down afterwards is then the
+        // correct consequence, not the bug — the bug is ICE dying *without* one.
+        let terminated = Terminated()
+        call.onSessionTerminated = { reason in
+            timeline.record("SESSION TERMINATED by focus, reason=\(reason ?? "none")")
+            terminated.set()
+        }
 
         // --- run -------------------------------------------------------------
         let callTask = Task { await call.run() }
@@ -217,12 +227,32 @@ final class LiveSustainedCallTests: XCTestCase {
 
         timeline.dump("SUSTAINED CALL TIMELINE (room \(parsed.roomName))")
 
-        // The assertion: the call must still be up. On failure the timeline above
-        // shows exactly which channel died first (XMPP / bridge / ICE).
+        // The assertion: the call must still be up, UNLESS the focus explicitly
+        // ended the session (which is correct server behaviour). On failure the
+        // timeline shows exactly which channel died first (XMPP / bridge / ICE).
         let states = iceStates.all
-        XCTAssertFalse(states.contains(.disconnected) || states.contains(.failed),
-                       "ICE dropped during the hold — see the timeline for what died first. States: "
-                       + states.map(Self.describeICE).joined(separator: " -> "))
+        let iceDropped = states.contains(.disconnected) || states.contains(.failed)
+        if terminated.value {
+            timeline.record("NOTE: focus terminated the session — ICE teardown after that is expected")
+        } else {
+            XCTAssertFalse(iceDropped,
+                           "ICE dropped with no session-terminate — see the timeline for what died "
+                           + "first. States: " + states.map(Self.describeICE).joined(separator: " -> "))
+        }
+        // Either way the peer must not have vanished on us mid-hold: a
+        // session-terminate this early means the other participant was lost,
+        // which is the failure mode this test exists to catch.
+        XCTAssertFalse(terminated.value,
+                       "The focus terminated the session during the hold — the other participant "
+                       + "was lost (see the timeline for its `presence type=unavailable`).")
+    }
+
+    /// Thread-safe one-shot flag.
+    final class Terminated: @unchecked Sendable {
+        private let lock = NSLock()
+        private var flag = false
+        func set() { lock.lock(); flag = true; lock.unlock() }
+        var value: Bool { lock.lock(); defer { lock.unlock() }; return flag }
     }
 
     /// Small lock-guarded log of ICE states (callbacks arrive off the main thread).

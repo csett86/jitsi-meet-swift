@@ -285,6 +285,13 @@ public actor JitsiConference {
             case "source-add", "source-remove":
                 let changes = sources.apply(jingle)
                 if !changes.isEmpty { emit(.sourceChanged(changes)) }
+            case "session-terminate":
+                // The focus ended the session — routinely, e.g. once everyone
+                // else has left. Drop the session state so a later re-invite
+                // starts clean, and tell the media layer to tear down.
+                pendingOffer = nil
+                sources = SourceManager()
+                emit(.sessionTerminated(reason: jingle.reason))
             default:
                 break
             }

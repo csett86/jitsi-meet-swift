@@ -9,10 +9,13 @@ public struct Jingle: Equatable, Sendable {
     public var initiator: String?
     public var responder: String?
     public var contents: [JingleContent]
+    /// The condition inside `<reason>` on a `session-terminate` (e.g. `success`,
+    /// `gone`, `timeout`), when present.
+    public var reason: String?
     public init(action: String, sid: String, initiator: String?, responder: String?,
-                contents: [JingleContent]) {
+                contents: [JingleContent], reason: String? = nil) {
         self.action = action; self.sid = sid; self.initiator = initiator
-        self.responder = responder; self.contents = contents
+        self.responder = responder; self.contents = contents; self.reason = reason
     }
 }
 

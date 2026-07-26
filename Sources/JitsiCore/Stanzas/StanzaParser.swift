@@ -173,7 +173,10 @@ public enum StanzaParser {
             sid: node.attribute("sid") ?? "",
             initiator: node.attribute("initiator"),
             responder: node.attribute("responder"),
-            contents: node.children("content").map(parseContent)
+            contents: node.children("content").map(parseContent),
+            // <reason><success/><text>…</text></reason> — the condition is the
+            // first child that isn't the free-text explanation.
+            reason: node.child("reason")?.children.first { $0.localName != "text" }?.localName
         )
     }
 
