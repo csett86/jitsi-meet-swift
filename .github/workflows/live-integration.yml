@@ -29,7 +29,7 @@ jobs:
       - name: Live signaling tests (Swift)
         env:
           JITSI_LIVE_TESTS: "1"
-          JITSI_TEST_URL: ${{ inputs.test_url }}
+          JITSI_TEST_URL: ${{ inputs.test_url || 'https://jitsi.luki.org/jitsimeetswiftci' }}
         run: swift test --filter JitsiLiveTests
 
       # Drift check (Python) — a single short client that compares the live
