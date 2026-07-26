@@ -117,6 +117,8 @@ public enum StanzaParser {
             return .discoInfo(parseDiscoInfo(child))
         case "services" where ns.contains("extdisco"):
             return .externalServices(child.children("service").map(parseService))
+        case "ping" where ns == "urn:xmpp:ping":
+            return .ping
         case "conference":
             return .conference(parseConference(child))
         case "jingle":
@@ -171,7 +173,10 @@ public enum StanzaParser {
             sid: node.attribute("sid") ?? "",
             initiator: node.attribute("initiator"),
             responder: node.attribute("responder"),
-            contents: node.children("content").map(parseContent)
+            contents: node.children("content").map(parseContent),
+            // <reason><success/><text>…</text></reason> — the condition is the
+            // first child that isn't the free-text explanation.
+            reason: node.child("reason")?.children.first { $0.localName != "text" }?.localName
         )
     }
 

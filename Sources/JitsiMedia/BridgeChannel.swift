@@ -27,6 +27,9 @@ public actor BridgeChannel {
     public var onOpen: (@Sendable () -> Void)?
     /// Called when the socket closes, with the close code.
     public var onClose: (@Sendable (Int) -> Void)?
+    /// Every raw colibri message, for diagnostics — the JVB reports endpoint
+    /// connectivity and other state here that we do not model yet.
+    public var onMessage: (@Sendable (String) -> Void)?
 
     public init(url: URL) {
         self.url = url
@@ -46,6 +49,10 @@ public actor BridgeChannel {
     public func setCloseHandler(_ handler: @escaping @Sendable (Int) -> Void) {
         onClose = handler
         delegate.onClose = handler
+    }
+
+    public func setMessageHandler(_ handler: @escaping @Sendable (String) -> Void) {
+        onMessage = handler
     }
 
     public func connect() {
@@ -88,6 +95,11 @@ public actor BridgeChannel {
     }
 
     private func handleInbound(_ text: String) {
+        // Surface the raw colibri message first: the JVB reports things here we
+        // do not model yet (e.g. `EndpointConnectivityStatusChangeEvent`, which
+        // is the bridge's own view of whether an endpoint's media is arriving).
+        // Dropping them silently made a live call failure impossible to explain.
+        onMessage?(text)
         if let endpoint = EndpointMessage.dominantSpeaker(fromJSON: text) {
             onDominantSpeaker?(endpoint)
         }

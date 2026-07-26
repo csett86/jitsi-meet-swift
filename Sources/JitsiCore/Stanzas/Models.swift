@@ -93,6 +93,8 @@ public enum IQPayload: Equatable, Sendable {
     case externalServices([ExternalService])   // XEP-0215 TURN/STUN discovery
     case conference(ConferenceResponse)         // Jicofo focus response
     case jingle(Jingle)
+    /// XEP-0199 `<ping/>` — a liveness check, in either direction.
+    case ping
     case empty
     case unknown(element: String?)
 }
