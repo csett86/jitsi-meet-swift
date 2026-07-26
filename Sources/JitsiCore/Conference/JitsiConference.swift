@@ -20,11 +20,9 @@ public actor JitsiConference {
     // Handshake / conference state.
     private var authenticated = false
     private var joined = false
-    private var boundJID: JID?
     /// Our full JID exactly as the server bound it (the Jingle `responder`).
-    private var boundJIDRaw: String?
+    private var boundJID: String?
     private var muc = MUCSession()
-    private var capabilities: BackendCapabilities?
     private var sources = SourceManager()
     private var dominant = DominantSpeakerTracker()
 
@@ -107,14 +105,14 @@ public actor JitsiConference {
     // MARK: - Media send-back (Jingle answer + trickle)
 
     /// Our full bound JID (the Jingle `responder`), available once bound.
-    public var localJID: String? { boundJIDRaw }
+    public var localJID: String? { boundJID }
 
     /// Send the Jingle `session-accept` for the pending offer, carrying our
     /// local SDP answer. No-op until a `session-initiate` has been received and
     /// we are bound — the addressing (focus occupant + our JID) comes from there.
     public func acceptSession(local: LocalSDP) async {
         guard let offer = pendingOffer, let to = focusOccupantJID,
-              let responder = boundJIDRaw else { return }
+              let responder = boundJID else { return }
         let xml = JingleBuilder.sessionAccept(
             sid: offer.sid, to: to, id: nextIQID(),
             initiator: offer.initiator ?? to, responder: responder,
@@ -127,7 +125,7 @@ public actor JitsiConference {
     public func sendLocalCandidates(mediaName: String, ufrag: String?, pwd: String?,
                                     candidates: [ICECandidate]) async {
         guard let offer = pendingOffer, let to = focusOccupantJID,
-              let responder = boundJIDRaw, !candidates.isEmpty else { return }
+              let responder = boundJID, !candidates.isEmpty else { return }
         let xml = JingleBuilder.transportInfo(
             sid: offer.sid, to: to, id: nextIQID(),
             initiator: offer.initiator ?? to, responder: responder,
@@ -169,8 +167,7 @@ public actor JitsiConference {
     private func handleIQ(_ iq: IQ) async {
         switch iq.payload {
         case .bind(let jid):
-            boundJIDRaw = jid
-            boundJID = jid.flatMap(JID.init)
+            boundJID = jid
             // Post-bind: discover the deployment, then ask Jicofo to allocate.
             try? await transport.send(discoInfoRequest())
             try? await transport.send(externalServicesRequest())
@@ -178,9 +175,7 @@ public actor JitsiConference {
             emit(.stateChanged(.joining))
         case .discoInfo(let disco):
             if iq.type == "result" {
-                let caps = BackendCapabilities(disco: disco)
-                capabilities = caps
-                emit(.capabilities(caps))
+                emit(.capabilities(BackendCapabilities(disco: disco)))
             } else if iq.type == "get" {
                 // Jicofo is probing our capabilities — answer so it invites us.
                 try? await transport.send(discoInfoResponse(to: iq.from, id: iq.id))

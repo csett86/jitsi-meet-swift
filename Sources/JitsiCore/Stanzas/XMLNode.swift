@@ -10,10 +10,9 @@ import FoundationXML
 /// namespaces are read from `xmlns` attributes, which mirrors the wire format.
 public final class XMLElementNode {
     public let name: String
-    public private(set) var attributes: [String: String]
-    public private(set) var children: [XMLElementNode] = []
-    public internal(set) var text: String = ""
-    public weak var parent: XMLElementNode?
+    public let attributes: [String: String]
+    public fileprivate(set) var children: [XMLElementNode] = []
+    public fileprivate(set) var text: String = ""
 
     init(name: String, attributes: [String: String]) {
         self.name = name
@@ -52,9 +51,15 @@ public final class XMLElementNode {
         return nil
     }
 
-    func addChild(_ node: XMLElementNode) {
-        node.parent = self
-        children.append(node)
+    /// `name` → `value` from direct children with this local name, the shape XMPP
+    /// uses for `<parameter>` (Jingle) and `<property>` (Jicofo) lists. A child
+    /// without a `name` is skipped; a missing `value` reads as empty.
+    public func namedValues(_ localName: String) -> [String: String] {
+        var values: [String: String] = [:]
+        for child in children(localName) {
+            if let name = child.attribute("name") { values[name] = child.attribute("value") ?? "" }
+        }
+        return values
     }
 }
 
@@ -80,7 +85,7 @@ private final class TreeBuilder: NSObject, XMLParserDelegate {
                 attributes attributeDict: [String: String]) {
         let node = XMLElementNode(name: elementName, attributes: attributeDict)
         if let top = stack.last {
-            top.addChild(node)
+            top.children.append(node)
         } else {
             root = node
         }

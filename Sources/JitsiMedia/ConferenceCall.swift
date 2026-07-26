@@ -96,12 +96,10 @@ public final class ConferenceCall {
         }
         session.onIceStateChange = { [weak self] state in self?.onIceStateChange?(state) }
         session.onRemoteTrack = { [weak self] track in self?.onRemoteTrack?(track) }
-        // Forward the @Sendable bridge handlers directly (no self capture) — these
+        // Forward the @Sendable bridge handlers as-is (no self capture) — these
         // must be set before accept(), which opens the bridge channel.
-        let bridgeOpen = onBridgeOpen
-        session.onBridgeOpen = { bridgeOpen?() }
-        let speaker = onDominantSpeaker
-        session.onDominantSpeaker = { endpoint in speaker?(endpoint) }
+        session.onBridgeOpen = onBridgeOpen
+        session.onDominantSpeaker = onDominantSpeaker
 
         session.accept(offer: offer, iceServers: iceServers)
     }

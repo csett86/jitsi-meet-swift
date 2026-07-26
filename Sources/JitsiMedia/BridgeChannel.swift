@@ -23,10 +23,6 @@ public actor BridgeChannel {
 
     /// Called with the dominant-speaker endpoint id when it changes.
     public var onDominantSpeaker: (@Sendable (String) -> Void)?
-    /// Called once when the wss handshake completes (the JVB accepted us).
-    public var onOpen: (@Sendable () -> Void)?
-    /// Called when the socket closes, with the close code.
-    public var onClose: (@Sendable (Int) -> Void)?
 
     public init(url: URL) {
         self.url = url
@@ -38,14 +34,9 @@ public actor BridgeChannel {
         onDominantSpeaker = handler
     }
 
+    /// Called once when the wss handshake completes (the JVB accepted us).
     public func setOpenHandler(_ handler: @escaping @Sendable () -> Void) {
-        onOpen = handler
         delegate.onOpen = handler
-    }
-
-    public func setCloseHandler(_ handler: @escaping @Sendable (Int) -> Void) {
-        onClose = handler
-        delegate.onClose = handler
     }
 
     public func connect() {
@@ -94,21 +85,16 @@ public actor BridgeChannel {
     }
 }
 
-/// Bridges `URLSessionWebSocketDelegate`'s open/close callbacks (delivered on the
-/// session's delegate queue) to `@Sendable` handlers `BridgeChannel` sets before
-/// connecting. Confirming the wss handshake is the [MAC] signal Linux can't give.
+/// Bridges `URLSessionWebSocketDelegate`'s open callback (delivered on the
+/// session's delegate queue) to the `@Sendable` handler `BridgeChannel` sets
+/// before connecting. Confirming the wss handshake is the [MAC] signal Linux
+/// can't give.
 private final class WSDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Sendable {
     var onOpen: (@Sendable () -> Void)?
-    var onClose: (@Sendable (Int) -> Void)?
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didOpenWithProtocol protocol: String?) {
         onOpen?()
-    }
-
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
-                    didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        onClose?(closeCode.rawValue)
     }
 }
 #endif

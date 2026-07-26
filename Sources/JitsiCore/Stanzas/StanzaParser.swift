@@ -51,35 +51,27 @@ public enum StanzaParser {
     // MARK: - Presence
 
     private static func parsePresence(_ node: XMLElementNode) -> Presence {
-        var presence = Presence(
+        // muc#user carries the occupant item + status codes.
+        let mucUser = node.children.first {
+            $0.localName == "x" && ($0.namespace?.contains("muc#user") ?? false)
+        }
+        return Presence(
             from: node.attribute("from"),
             to: node.attribute("to"),
             type: node.attribute("type"),
             nick: node.child("nick")?.text,
-            statsID: node.child("stats-id")?.text
+            statsID: node.child("stats-id")?.text,
+            occupantID: node.firstDescendant("occupant-id")?.attribute("id"),
+            audioMuted: node.child("audiomuted").map { $0.text == "true" },
+            videoMuted: node.child("videomuted").map { $0.text == "true" },
+            mucItem: mucUser?.child("item").map {
+                MUCItem(role: $0.attribute("role"),
+                        affiliation: $0.attribute("affiliation"),
+                        jid: $0.attribute("jid"))
+            },
+            statusCodes: mucUser?.children("status")
+                .compactMap { $0.attribute("code").flatMap(Int.init) } ?? []
         )
-        if let occupant = node.firstDescendant("occupant-id") {
-            presence.occupantID = occupant.attribute("id")
-        }
-        if let audio = node.child("audiomuted")?.text { presence.audioMuted = (audio == "true") }
-        if let video = node.child("videomuted")?.text { presence.videoMuted = (video == "true") }
-
-        // muc#user carries the occupant item + status codes.
-        if let mucUser = node.children.first(where: {
-            $0.localName == "x" && ($0.namespace?.contains("muc#user") ?? false)
-        }) {
-            if let item = mucUser.child("item") {
-                presence.mucItem = MUCItem(
-                    role: item.attribute("role"),
-                    affiliation: item.attribute("affiliation"),
-                    jid: item.attribute("jid")
-                )
-            }
-            presence.statusCodes = mucUser.children("status").compactMap {
-                $0.attribute("code").flatMap(Int.init)
-            }
-        }
-        return presence
     }
 
     // MARK: - Message
@@ -149,17 +141,11 @@ public enum StanzaParser {
     }
 
     private static func parseConference(_ node: XMLElementNode) -> ConferenceResponse {
-        var props: [String: String] = [:]
-        for property in node.children("property") {
-            if let name = property.attribute("name"), let value = property.attribute("value") {
-                props[name] = value
-            }
-        }
-        return ConferenceResponse(
+        ConferenceResponse(
             ready: node.attribute("ready") == "true",
             room: node.attribute("room"),
             focusJID: node.attribute("focusjid"),
-            properties: props
+            properties: node.namedValues("property")
         )
     }
 
@@ -192,20 +178,15 @@ public enum StanzaParser {
     }
 
     private static func parsePayloadType(_ node: XMLElementNode) -> PayloadType {
-        var params: [String: String] = [:]
-        for p in node.children("parameter") {
-            if let name = p.attribute("name") { params[name] = p.attribute("value") ?? "" }
-        }
-        let feedback = node.children("rtcp-fb").map {
-            RTCPFeedback(type: $0.attribute("type") ?? "", subtype: $0.attribute("subtype"))
-        }
-        return PayloadType(
+        PayloadType(
             id: node.attribute("id").flatMap(Int.init) ?? -1,
             name: node.attribute("name"),
             clockrate: node.attribute("clockrate").flatMap(Int.init),
             channels: node.attribute("channels").flatMap(Int.init),
-            parameters: params,
-            rtcpFeedback: feedback
+            parameters: node.namedValues("parameter"),
+            rtcpFeedback: node.children("rtcp-fb").map {
+                RTCPFeedback(type: $0.attribute("type") ?? "", subtype: $0.attribute("subtype"))
+            }
         )
     }
 
@@ -216,15 +197,11 @@ public enum StanzaParser {
     }
 
     private static func parseSource(_ node: XMLElementNode) -> Source {
-        var params: [String: String] = [:]
-        for p in node.children("parameter") {
-            if let name = p.attribute("name") { params[name] = p.attribute("value") ?? "" }
-        }
-        return Source(
+        Source(
             ssrc: node.attribute("ssrc") ?? "",
             name: node.attribute("name"),
             owner: node.child("ssrc-info")?.attribute("owner"),
-            parameters: params
+            parameters: node.namedValues("parameter")
         )
     }
 
@@ -236,31 +213,27 @@ public enum StanzaParser {
     }
 
     private static func parseTransport(_ node: XMLElementNode) -> JingleTransport {
-        var fingerprint: DTLSFingerprint?
-        if let fp = node.child("fingerprint") {
-            fingerprint = DTLSFingerprint(
-                hash: fp.attribute("hash") ?? "",
-                setup: fp.attribute("setup"),
-                value: fp.text
-            )
-        }
-        let candidates = node.children("candidate").map { c in
-            ICECandidate(
-                foundation: c.attribute("foundation"),
-                component: c.attribute("component").flatMap(Int.init),
-                proto: c.attribute("protocol"),
-                priority: c.attribute("priority").flatMap(Int.init),
-                ip: c.attribute("ip"),
-                port: c.attribute("port").flatMap(Int.init),
-                type: c.attribute("type")
-            )
-        }
-        return JingleTransport(
+        JingleTransport(
             ufrag: node.attribute("ufrag"),
             pwd: node.attribute("pwd"),
-            fingerprint: fingerprint,
-            candidates: candidates,
+            fingerprint: node.child("fingerprint").map {
+                DTLSFingerprint(hash: $0.attribute("hash") ?? "",
+                                setup: $0.attribute("setup"), value: $0.text)
+            },
+            candidates: node.children("candidate").map(parseCandidate),
             webSocketURL: node.child("web-socket")?.attribute("url")
+        )
+    }
+
+    private static func parseCandidate(_ node: XMLElementNode) -> ICECandidate {
+        ICECandidate(
+            foundation: node.attribute("foundation"),
+            component: node.attribute("component").flatMap(Int.init),
+            proto: node.attribute("protocol"),
+            priority: node.attribute("priority").flatMap(Int.init),
+            ip: node.attribute("ip"),
+            port: node.attribute("port").flatMap(Int.init),
+            type: node.attribute("type")
         )
     }
 }
