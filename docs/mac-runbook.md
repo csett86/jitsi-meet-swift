@@ -79,8 +79,11 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    `JingleBuilder`.)
 3. Two-participant call with **real media rendering** (this app vs. a browser tab
    in the same dedicated room): camera/mic RTP both directions, remote video on
-   screen. _Still pending — the headless test above proves connectivity, but
-   actual capture + rendering needs the Phase 4 app + a human._
+   screen. _Mostly done — see docs/mac-signoff.md for the evidence from the
+   2026-07-26 run: our camera decoded at 1280x720 by a browser participant, a
+   remote camera decoded and rendered here, and opus arriving once a peer
+   unmuted. What still needs a human is eyeballing the app's own window and
+   hearing the audio._
 4. **✅ Fixed — the call now survives a sustained hold.** The former "ICE dies at
    60–95s" issue was **not** a network/ICE fault. Root cause: the client sent no
    XMPP keepalive, so an idle participant was dropped at ~60s; the conference then
@@ -113,13 +116,50 @@ a human must verify on macOS:
    present, so it can be absent on a silent call).
 2. `MediaSession.setReceiverConstraints(_:)` (from `QualityController`) is
    accepted by the bridge and actually changes which/what resolution videos
-   arrive. _Partial — the same test pushes a `ReceiverVideoConstraints` over the
-   live bridge (send path works); confirming it changes the received video needs
-   multiple media senders + rendering (Phase 4 app)._
+   arrive. **✅ observed with the Phase 4 app** — the bridge answers
+   `ForwardedSources` with the requested source and starts sending it. Note the
+   message must be **source-name keyed**; the earlier endpoint-keyed form was
+   silently ignored and no video was ever forwarded (docs/findings.md).
 3. 4–5 participant call: SSRC↔participant mapping is correct, lastN/quality
    decisions behave, dominant-speaker highlight tracks. Use a **private
    instance** for sustained load (do not strain jitsi.luki.org). _Still pending._
 
 ### Phase 4 — app loop
-Launch → paste conference URL → join → participant grid → mute/camera → leave,
-plus the malformed-URL inline error.
+
+Build the bundle (Info.plist with the camera/mic usage descriptions, embedded
+WebRTC framework, ad-hoc signature) and run it:
+
+```sh
+./Tools/mac-app/make-app.sh          # -> build/JitsiMeetSwift.app
+open build/JitsiMeetSwift.app
+```
+
+Manual pass: launch → paste conference URL → join → participant grid →
+mute/camera → leave, plus the malformed-URL inline error.
+
+Unattended pass (what the live checks use — keeps the session short, as
+docs/live-testing.md requires):
+
+```sh
+open -n build/JitsiMeetSwift.app --args \
+  https://jitsi.luki.org/<room> --autojoin --leave-after 25 --log /tmp/jitsi-a.log
+```
+
+The app logs to `~/Library/Logs/JitsiMeetSwift.log` (or `--log <path>`). What to
+look for, in order:
+
+| Line | Means |
+| --- | --- |
+| `device access: camera=true microphone=true` | TCC granted — the bundle's Info.plist is being seen. |
+| `negotiated: audio/a/sendrecv video/v/sendrecv audio-r1/a/recvonly …` | Receive sections were built, one per remote track. |
+| `bridge <- {"colibriClass":"ForwardedSources","forwardedSources":["<ep>-v0"]}` | The bridge accepted our receiver constraints and is sending video. |
+| `bridge <- {"colibriClass":"SenderSourceConstraints", …, "maxHeight":720}` | Someone is requesting **our** camera (needs `<SourceInfo>` presence). |
+| `media ↑ a/v …B (N frames, AV1) · ↓ a/v …B (N frames, 2 streams, VP8)` | Real RTP in both directions, from WebRTC's own counters, with the codecs actually in use (we send whatever the JVB lists first). |
+| `rendered N frame(s) of <ep> video at 960x540` | Decoded frames reaching the renderer the tile draws. |
+
+To check the *other* side of the call, open the same room in a browser and read
+its stats from the JS console — `inbound-rtp` for our SSRC should show a resolved
+codec and a rising `framesDecoded`. Packets arriving with **no** resolved codec
+and zero frames usually means nobody actually subscribed to us (check
+`SenderSourceConstraints` on our side), not that the codec is wrong — see the
+correction in docs/findings.md.

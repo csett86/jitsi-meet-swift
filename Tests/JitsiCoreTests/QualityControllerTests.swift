@@ -3,52 +3,52 @@ import XCTest
 
 final class QualityControllerTests: XCTestCase {
 
-    private let visible9 = (1...9).map { "ep\($0)" }
+    private let visible9 = (1...9).map { "ep\($0)-v0" }
 
     func testLowBandwidthCapsLastNAndResolution() {
-        let c = QualityController.constraints(visibleEndpoints: visible9, bandwidth: .low)
+        let c = QualityController.constraints(visibleSources: visible9, bandwidth: .low)
         XCTAssertEqual(c.lastN, 4)
         XCTAssertEqual(c.defaultMaxHeight, 180)
     }
 
     func testHighBandwidthAllowsMoreAndHigherStage() {
-        let c = QualityController.constraints(visibleEndpoints: visible9, bandwidth: .high)
+        let c = QualityController.constraints(visibleSources: visible9, bandwidth: .high)
         XCTAssertEqual(c.lastN, 9)                 // fewer visible than the cap of 20
         XCTAssertEqual(c.onStageMaxHeight, 720)
     }
 
     func testLastNNeverExceedsVisibleCount() {
-        let c = QualityController.constraints(visibleEndpoints: ["a", "b"], bandwidth: .high)
+        let c = QualityController.constraints(visibleSources: ["a", "b"], bandwidth: .high)
         XCTAssertEqual(c.lastN, 2)
     }
 
-    func testSelectedEndpointsGetStageResolution() {
-        let c = QualityController.constraints(visibleEndpoints: visible9,
-                                              selectedEndpoints: ["ep1"], bandwidth: .medium)
-        XCTAssertEqual(c.perEndpointMaxHeight["ep1"], 540)
-        XCTAssertEqual(c.selectedEndpoints, ["ep1"])
+    func testSelectedSourcesGetStageResolution() {
+        let c = QualityController.constraints(visibleSources: visible9,
+                                              selectedSources: ["ep1-v0"], bandwidth: .medium)
+        XCTAssertEqual(c.perSourceMaxHeight["ep1-v0"], 540)
+        XCTAssertEqual(c.selectedSources, ["ep1-v0"])
     }
 
-    func testSelectedEndpointsAlwaysReceivableEvenBeyondCap() {
+    func testSelectedSourcesAlwaysReceivableEvenBeyondCap() {
         // 10 selected on a low tier (cap 4): lastN must grow to include them all.
-        let many = (1...10).map { "sel\($0)" }
-        let c = QualityController.constraints(visibleEndpoints: many, selectedEndpoints: many, bandwidth: .low)
+        let many = (1...10).map { "sel\($0)-v0" }
+        let c = QualityController.constraints(visibleSources: many, selectedSources: many, bandwidth: .low)
         XCTAssertEqual(c.lastN, 10)
     }
 
     func testColibriMessageJSON() throws {
-        let c = QualityController.constraints(visibleEndpoints: (1...9).map { "ep\($0)" },
-                                              selectedEndpoints: ["ep1"], bandwidth: .medium)
+        let c = QualityController.constraints(visibleSources: (1...9).map { "ep\($0)-v0" },
+                                              selectedSources: ["ep1-v0"], bandwidth: .medium)
         let json = c.colibriMessageJSON()
         let object = try XCTUnwrap(
             JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
         XCTAssertEqual(object["colibriClass"] as? String, "ReceiverVideoConstraints")
         XCTAssertEqual(object["lastN"] as? Int, 9)
-        XCTAssertEqual(object["selectedEndpoints"] as? [String], ["ep1"])
+        XCTAssertEqual(object["selectedSources"] as? [String], ["ep1-v0"])
         let defaults = try XCTUnwrap(object["defaultConstraints"] as? [String: Int])
         XCTAssertEqual(defaults["maxHeight"], 360)
-        let perEndpoint = try XCTUnwrap(object["constraints"] as? [String: [String: Int]])
-        XCTAssertEqual(perEndpoint["ep1"]?["maxHeight"], 540)
+        let perSource = try XCTUnwrap(object["constraints"] as? [String: [String: Int]])
+        XCTAssertEqual(perSource["ep1-v0"]?["maxHeight"], 540)
     }
 }
 

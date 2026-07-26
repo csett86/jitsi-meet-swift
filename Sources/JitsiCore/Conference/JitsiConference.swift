@@ -24,6 +24,9 @@ public actor JitsiConference {
     /// Our full JID exactly as the server bound it (the Jingle `responder`).
     private var boundJID: String?
     private var muc = MUCSession()
+    /// Mute state as published in our MUC presence (see ``setMuted(audio:video:)``).
+    private var audioMuted = false
+    private var videoMuted = false
     private var sources = SourceManager()
     private var dominant = DominantSpeakerTracker()
 
@@ -172,6 +175,11 @@ public actor JitsiConference {
     /// Our full bound JID (the Jingle `responder`), available once bound.
     public var localJID: String? { boundJID }
 
+    /// Our endpoint id — the MUC nick. Every Jitsi endpoint is identified by it:
+    /// it owns our source names, and it is what the bridge reports as the
+    /// dominant speaker.
+    public nonisolated var endpointID: String { nick }
+
     /// Send the Jingle `session-accept` for the pending offer, carrying our
     /// local SDP answer. No-op until a `session-initiate` has been received and
     /// we are bound — the addressing (focus occupant + our JID) comes from there.
@@ -181,8 +189,20 @@ public actor JitsiConference {
         let xml = JingleBuilder.sessionAccept(
             sid: offer.sid, to: to, id: nextIQID(),
             initiator: offer.initiator ?? to, responder: responder,
-            offer: offer, local: local)
+            offer: offer, local: local, endpointID: nick)
         try? await transport.send(xml)
+    }
+
+    /// Publish our mute state in MUC presence. Jitsi carries mute state in
+    /// presence, not in the media session: other clients read `<audiomuted>` /
+    /// `<videomuted>` to draw the mic/camera badges, and moderation features act
+    /// on them. Muting the track locally without this leaves everyone else
+    /// showing us as unmuted.
+    public func setMuted(audio: Bool, video: Bool) async {
+        audioMuted = audio
+        videoMuted = video
+        guard joined else { return }
+        try? await transport.send(joinPresence())
     }
 
     /// Trickle locally-gathered ICE candidates for one media section to the
@@ -280,6 +300,10 @@ public actor JitsiConference {
                 let offer = ParsedSessionDescription(jingle: jingle)
                 pendingOffer = offer
                 emit(.sessionDescription(offer))
+                // Participants who were already publishing when we joined are in
+                // the offer itself, not in a later `source-add` — surface them so
+                // the media layer builds their receive sections straight away.
+                if !sources.tracks.isEmpty { emit(.remoteTracks(sources.tracks)) }
             case "transport-info":
                 for content in jingle.contents {
                     let candidates = content.transport?.candidates ?? []
@@ -289,7 +313,10 @@ public actor JitsiConference {
                 }
             case "source-add", "source-remove":
                 let changes = sources.apply(jingle)
-                if !changes.isEmpty { emit(.sourceChanged(changes)) }
+                if !changes.isEmpty {
+                    emit(.sourceChanged(changes))
+                    emit(.remoteTracks(sources.tracks))
+                }
             case "session-terminate":
                 // The focus ended the session — routinely, e.g. once everyone
                 // else has left. Drop the session state so a later re-invite
@@ -321,7 +348,10 @@ public actor JitsiConference {
             // When a participant leaves, drop the media sources they owned.
             if case let .left(participant) = change {
                 let removed = sources.removeEndpoint(participant.nick)
-                if !removed.isEmpty { emit(.sourceChanged(removed)) }
+                if !removed.isEmpty {
+                    emit(.sourceChanged(removed))
+                    emit(.remoteTracks(sources.tracks))
+                }
             }
         }
         if presence.isSelfPresence {
@@ -376,9 +406,24 @@ public actor JitsiConference {
         + "<x xmlns='http://jabber.org/protocol/muc'/>"
         + "<stats-id>\(nick)</stats-id>"
         + "<nick xmlns='http://jabber.org/protocol/nick'>\(nick)</nick>"
-        + "<audiomuted xmlns='http://jitsi.org/jitmeet/audio'>false</audiomuted>"
-        + "<videomuted xmlns='http://jitsi.org/jitmeet/video'>false</videomuted>"
+        + "<audiomuted xmlns='http://jitsi.org/jitmeet/audio'>\(audioMuted)</audiomuted>"
+        + "<videomuted xmlns='http://jitsi.org/jitmeet/video'>\(videoMuted)</videomuted>"
+        + sourceInfo()
         + "</presence>"
+    }
+    /// Per-source state, keyed by Jitsi source name. Modern clients
+    /// (`lib-jitsi-meet` with source-name signaling) decide whether to *request*
+    /// a participant's video from the bridge by looking here; a participant with
+    /// no `SourceInfo` is treated as having nothing to show, so their tile stays
+    /// an avatar and the bridge is never asked for their video. Observed live:
+    /// without this the browser received our audio but never subscribed to our
+    /// camera, and the bridge reported `maxHeight: 0` for our source throughout.
+    private func sourceInfo() -> String {
+        let audio = JingleBuilder.sourceName(endpointID: nick, kind: "audio")
+        let video = JingleBuilder.sourceName(endpointID: nick, kind: "video")
+        let json = "{\"\(audio)\":{\"muted\":\(audioMuted)},"
+            + "\"\(video)\":{\"muted\":\(videoMuted),\"videoType\":\"camera\"}}"
+        return "<SourceInfo>\(json)</SourceInfo>"
     }
     private func leavePresence() -> String {
         "<presence to='\(roomJID)/\(nick)' type='unavailable' xmlns='jabber:client'/>"

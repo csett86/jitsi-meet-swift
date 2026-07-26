@@ -201,3 +201,73 @@ Observed JVB version: **2.3.291-gb4b5ccc8c**.
 | `lukijitsi-access-probe.json`   | Minimal `open` → `stream:features` (proves ANONYMOUS). |
 | `lukijitsi-join.json`           | Two-party join: features, bind, disco#info, TURN extdisco, conference-ready, MUC presences, **Jingle `session-initiate`**. |
 | `multiparty-sources.json`       | **Synthetic** `source-add` / `source-remove` for two endpoints + an XMPP dominant-speaker message. Constructed from the real source format (owner, msid, SIM group) because headless clients can't publish media to generate real ones — see the Phase 3 nuance above. |
+
+## Real media: what it takes for RTP to actually flow (2026-07-26)
+
+Signaling completeness, ICE `connected` and DTLS `connected` are **not** enough:
+a call can be fully "up" with zero media in either direction. Three separate
+things had to be right, each found by running the app against
+`jitsi.luki.org/swiftest` with a browser participant and reading the bridge's own
+messages. (Endpoint ids below are from those runs.)
+
+### 1. One receive-only m-section per remote source (client-side renegotiation)
+
+The JVB offers exactly **two** m-sections — our audio and our video — and then
+announces everyone else's media with Jingle `source-add`, never a new offer.
+Unified Plan needs one m-section per received track, so the client synthesizes
+them itself, sets the rebuilt offer on its own peer connection and answers it
+locally. Nothing goes back to Jicofo for this (see ``RemoteSDPSession``). mids
+are never renumbered — a removed source leaves an `a=inactive` tombstone — and
+the mid is what maps a received track back to a participant.
+
+### 2. Receiver constraints must be keyed by **source name**, not endpoint id
+
+The bridge forwards *no* video until the client asks for some. With the legacy
+endpoint-keyed message the bridge kept answering:
+
+```json
+{"colibriClass":"ForwardedSources","forwardedSources":[]}
+```
+
+Switching to the source-name form (`selectedSources` / `onStageSources`, and
+`constraints` keyed by `<endpoint>-v0`) flipped it immediately to
+`forwardedSources:["7014e00d-v0"]`, and remote video started arriving.
+
+### 3. Our own sources need `<SourceInfo>` in presence
+
+Other clients decide whether to *request* our camera from the bridge by reading
+per-source state from our MUC presence:
+
+```xml
+<SourceInfo>{"swift-ab12-a0":{"muted":false},"swift-ab12-v0":{"muted":false,"videoType":"camera"}}</SourceInfo>
+```
+
+Without it we were a participant with an avatar and no video: the browser
+received our **audio** fine, never subscribed to our video, and the bridge
+reported `SenderSourceConstraints … "maxHeight":0` for our source the whole time.
+Adding it produced `"maxHeight":720` within a second and the browser rendered our
+camera at 960x540.
+
+### The codec order in the offer is the deployment's preference — follow it
+
+WebRTC encodes with the **first payload type** of the m-section, so whatever the
+`session-initiate` lists first is what we send. On jitsi.luki.org that is
+**AV1 (pt 41)**, and it works: a browser participant decodes our AV1 at
+`1280x720 @30fps` (its own connection panel reports `Codecs (A/V): opus, AV1`).
+`SDPBuilder` therefore keeps the offered order untouched; the `sendVideoCodec`
+parameter exists only for pinning a codec while debugging interop.
+
+> _Corrected._ An earlier run in this same session concluded that AV1 was
+> undecodable by the browser — it showed our RTP arriving with **no resolved
+> codec and 0 frames decoded**. That was a misreading: at the time the browser
+> had never subscribed to our video at all (the `<SourceInfo>` presence above was
+> missing), and the packet counter was a leftover from a previous app instance.
+> Fixing the presence fixed the black tile; the codec was never the problem.
+
+### What the bridge tells you (worth reading during any media debugging)
+
+`SenderSourceConstraints` (is anyone asking for my video, and at what height),
+`ForwardedSources` (what I am being sent), `EndpointStats` (every endpoint's
+up/download bitrate and `maxEnabledResolution`), `ServerHello`, `ConnectionStats`.
+Between those and WebRTC's own `inbound-rtp` / `outbound-rtp` / `transport`
+counters, every failure above was diagnosable without guessing.

@@ -21,6 +21,9 @@ public struct LocalSDPMedia: Equatable, Sendable {
     public var fingerprint: DTLSFingerprint?
     public var candidates: [ICECandidate]
     public var sources: [LocalSSRC]
+    /// `a=ssrc-group:` lines (FID for RTX, SIM for simulcast). Jicofo needs these
+    /// to know which of our SSRCs are one track.
+    public var ssrcGroups: [SourceGroup] = []
 }
 
 /// A parsed local SDP answer.
@@ -51,6 +54,7 @@ public enum SDPAnswerParser {
         var current: LocalSDPMedia?
         // SSRCs in first-seen order; a real answer has only a handful per section.
         var sources: [LocalSSRC] = []
+        var groups: [SourceGroup] = []
 
         /// Attributes before the first `m=` belong to the session, not a section.
         func set(_ key: WritableKeyPath<TransportAttributes, String?>, _ value: String) {
@@ -68,10 +72,12 @@ public enum SDPAnswerParser {
                                                 value: value)
             }
             m.sources = sources
+            m.ssrcGroups = groups
             media.append(m)
             current = nil
             section = TransportAttributes()
             sources = []
+            groups = []
         }
 
         // Normalize CRLF first: in Swift "\r\n" is a single Character (grapheme),
@@ -102,6 +108,13 @@ public enum SDPAnswerParser {
                     if let candidate = SDPCandidate.parse(value) { current?.candidates.append(candidate) }
                 case "ssrc":
                     parseSSRC(value, into: &sources)
+                case "ssrc-group":
+                    // "a=ssrc-group:FID 1234 5678"
+                    let tokens = value.split(separator: " ").map(String.init)
+                    if let semantics = tokens.first, tokens.count > 1 {
+                        groups.append(SourceGroup(semantics: semantics,
+                                                  ssrcs: Array(tokens.dropFirst())))
+                    }
                 default: break
                 }
             default: break

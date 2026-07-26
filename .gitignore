@@ -16,3 +16,4 @@ DerivedData/
 *.swp
 .vscode/
 .idea/
+build/

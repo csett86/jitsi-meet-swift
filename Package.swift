@@ -47,6 +47,7 @@ var targets: [Target] = [
 // stasel/WebRTC XCFramework, which cannot build or link on Linux. They are only
 // declared when the manifest runs on macOS, so Linux CI never sees them.
 products.append(.library(name: "JitsiMedia", targets: ["JitsiMedia"]))
+products.append(.executable(name: "JitsiApp", targets: ["JitsiApp"]))
 
 targets.append(
     .target(
@@ -56,6 +57,23 @@ targets.append(
             .product(name: "WebRTC", package: "WebRTC"),
         ],
         path: "Sources/JitsiMedia",
+        exclude: ["README.md"]
+    )
+)
+
+// [MAC] Phase 4 — the SwiftUI app. An executable target rather than an Xcode
+// project so the whole client builds with `swift build` on any Mac; the runnable
+// .app bundle (Info.plist with the camera/microphone usage descriptions, the
+// embedded WebRTC framework) is assembled by Tools/mac-app/make-app.sh.
+targets.append(
+    .executableTarget(
+        name: "JitsiApp",
+        dependencies: [
+            "JitsiCore",
+            "JitsiMedia",
+            .product(name: "WebRTC", package: "WebRTC"),
+        ],
+        path: "Sources/JitsiApp",
         exclude: ["README.md"]
     )
 )
