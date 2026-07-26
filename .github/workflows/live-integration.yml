@@ -67,5 +67,8 @@ jobs:
       # (non-gating) on drift so fixtures get refreshed deliberately.
       - name: Drift check (Python)
         run: |
-          pip install --quiet websockets
-          python3 Tools/LiveCapture/python/drift_check.py "${{ inputs.test_url }}"
+          # The runner is macOS, where a bare `pip` may be absent and the system
+          # Python is externally managed — install into a venv we control.
+          python3 -m venv /tmp/driftenv
+          /tmp/driftenv/bin/pip install --quiet websockets
+          /tmp/driftenv/bin/python Tools/LiveCapture/python/drift_check.py "${{ inputs.test_url }}"

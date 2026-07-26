@@ -81,18 +81,21 @@ Linux in `JitsiCore/SDP`; what a human must verify on macOS:
    in the same dedicated room): camera/mic RTP both directions, remote video on
    screen. _Still pending — the headless test above proves connectivity, but
    actual capture + rendering needs the Phase 4 app + a human._
-4. **❌ Known issue — ICE does not survive a sustained call.** Reproduced twice
-   live: `connected` → `disconnected` → `failed` at 60–95s in, with zero
-   XMPP/Jingle traffic around the drop (ruled out via a combined XMPP+ICE tee —
-   it's not a missed renegotiation). `MediaSession`/`ConferenceCall` never call
-   `RTCPeerConnection.restartIce()` and there's no Jingle ICE-restart
-   re-signaling, so once it fails the call is permanently dead. See
-   docs/mac-signoff.md (Phase 2/3 row) for the full trace. **Root cause not yet
-   isolated** — next diagnostic step is re-running with macOS App Nap/background
-   throttling explicitly disabled for the process to rule that out before
-   assuming a real network-path issue. **No fix implemented yet** — needs
-   `restartIce()` plus a Jingle-level ICE-restart flow (new `transport-info`
-   carrying fresh ufrag/pwd) for real recovery.
+4. **✅ Fixed — the call now survives a sustained hold.** The former "ICE dies at
+   60–95s" issue was **not** a network/ICE fault. Root cause: the client sent no
+   XMPP keepalive, so an idle participant was dropped at ~60s; the conference then
+   had one participant left, so Jicofo correctly sent `session-terminate`; and the
+   client ACKed but ignored it, leaving a peer connection that failed on its own
+   ~5s later. Fixed by XEP-0199 keepalive + real `session-terminate` teardown.
+   Regression test (also the diagnostic — it prints one timestamped
+   XMPP/bridge/ICE timeline):
+   ```sh
+   JITSI_LIVE_TESTS=1 JITSI_CALL_SECONDS=150 \
+     swift test --filter testLiveSustainedCallSurvives
+   # reproduce the old failure: JITSI_KEEPALIVE=0
+   ```
+   Verified on macOS CI both ways (see docs/mac-signoff.md). Note this is still
+   about *connection* survival — real camera/mic RTP and rendering remain item 3.
 
 ### Phase 3 — multi-party stability
 The multi-party logic is pure and unit-tested on Linux (`SourceManager`,

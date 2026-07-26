@@ -139,6 +139,59 @@ This is why the deterministic core is driven by `FakeTransport` replaying
 committed fixtures: it needs no working Linux WebSocket, and CI stays green
 offline.
 
+## The "call dies after 60–95s" drop — root cause (2026-07-26)
+
+A live call reached ICE `connected`, then went `disconnected`/`failed` at 60–95s
+every time, seemingly with no signaling to explain it. It is **not** a network,
+ICE consent-freshness or macOS power-management problem. The macOS-CI
+sustained-call diagnostic (`LiveSustainedCallTests`) produced this timeline:
+
+```
+[  6.4s] ICE connected
+[ 65.6s] XMPP <- presence type=unavailable     <- the other participant is dropped
+[ 85.7s] BRIDGE CLOSED code=1001
+[ 85.7s] XMPP <- iq action=session-terminate   <- Jicofo ends our session
+[ 91.1s] ICE disconnected                       <- merely the consequence
+```
+
+The chain:
+
+1. A client that sends nothing is dropped by the server after ~60s idle. Our
+   client had **no XEP-0199 keepalive at all** (`lib-jitsi-meet` pings every 10s).
+2. That left the conference with a single participant, so it no longer needed a
+   bridge session — **Jicofo correctly sent `session-terminate`**.
+3. Our client ACKed the terminate and otherwise **ignored it**, leaving a live
+   `RTCPeerConnection`. Its ICE then failed on its own ~5s later, which is the
+   "mysterious" drop that was actually our own unhandled teardown.
+
+**Fix:** XEP-0199 keepalive (10s, 3 missed = dead) + real `session-terminate`
+handling that tears the media session down and clears session state so a later
+re-invite starts clean.
+
+**Verified live on macOS CI**, same test, both ways:
+
+| | keepalive off | keepalive on |
+| --- | --- | --- |
+| peer at ~65s | `presence type=unavailable` | stays |
+| `session-terminate` | at 85.7s | never |
+| ICE after 150s | `disconnected` | **`connected`** |
+
+### Hypotheses eliminated first (both by live probe)
+
+- **An idle XMPP WebSocket is reaped by nginx at 60s** — no: an idle, joined
+  connection survived 150s+ untouched.
+- **An idle colibri bridge WebSocket is reaped at 60s** — no: it survived 170s+,
+  closing only at teardown (code 1001).
+
+### The bridge channel talks, and we were not listening
+
+The JVB sends real diagnostics over the colibri channel that the client used to
+discard (only dominant-speaker was parsed): `ServerHello` (JVB version),
+`ForwardedSources`, `SenderSourceConstraints`, and
+`EndpointConnectivityStatusChangeEvent` — the bridge's own view of whether an
+endpoint's media is arriving. These are now surfaced (`onBridgeMessage`).
+Observed JVB version: **2.3.291-gb4b5ccc8c**.
+
 ## Committed fixtures
 
 | File                            | What it is                                             |
