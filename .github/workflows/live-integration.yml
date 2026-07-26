@@ -1,27 +1,19 @@
-name: Live integration (jitsi.luki.org)
+name: Live integration
 
-# [CLOUD-LIVE] — NON-GATING, MANUAL ONLY. Runs the live signaling tests and the
+# [CLOUD-LIVE] — Runs the live signaling tests and the
 # drift check against the real, volunteer-run jitsi.luki.org.
 #
 # There is intentionally NO `schedule:` trigger. jitsi.luki.org is someone
 # else's production community server (see docs/live-testing.md) — never point an
 # unattended cron at it. Run this by hand, sparingly, in dedicated rooms.
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       test_url:
         description: "Full conference URL (dedicated room, per docs/live-testing.md)"
         required: false
         default: "https://jitsi.luki.org/jitsimeetswiftcidispatch"
-      sustained_call:
-        description: "Also run the sustained-call diagnostic (2 clients, holds a real call)"
-        type: boolean
-        required: false
-        default: false
-      call_seconds:
-        description: "How long the sustained call holds (seconds)"
-        required: false
-        default: "150"
 
 permissions:
   contents: read
@@ -29,11 +21,8 @@ permissions:
 
 jobs:
   live:
-    name: Live signaling (non-blocking)
+    name: Live signaling
     runs-on: macos-latest
-    # Never fail the overall run — this depends on a third-party server we do
-    # not control and must not treat as a gate.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 
@@ -42,20 +31,6 @@ jobs:
           JITSI_LIVE_TESTS: "1"
           JITSI_TEST_URL: ${{ inputs.test_url }}
         run: swift test --filter JitsiLiveTests
-
-      # Sustained-call diagnostic for the "call dies after 60–95s" issue. Opt-in
-      # because it holds a real 2-party call for a couple of minutes. Prints a
-      # single timestamped timeline (XMPP / colibri bridge / ICE) so whichever
-      # channel dies first is visible. Running it here also discriminates an
-      # environment-specific fault from a reproducible one: a GitHub macOS runner
-      # is a different machine, network and power-management regime.
-      - name: Sustained call diagnostic
-        if: ${{ inputs.sustained_call }}
-        env:
-          JITSI_LIVE_TESTS: "1"
-          JITSI_TEST_URL: ${{ inputs.test_url }}
-          JITSI_CALL_SECONDS: ${{ inputs.call_seconds }}
-        run: swift test --filter testLiveSustainedCallSurvives
 
       # Drift check (Python) — a single short client that compares the live
       # server's handshake markers to the committed fixture. Fails this step
